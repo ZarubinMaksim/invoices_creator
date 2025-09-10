@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Template</title>
     <style>
+        /* Добавляем шрифты с поддержкой тайского языка */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap');
+        
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Arial', 'Noto Sans Thai', sans-serif;
             margin: 0;
             padding: 20px;
             color: #000;
@@ -74,6 +77,12 @@
             background-color: #ffffcc;
             padding: 2px 5px;
         }
+        
+        /* Специфические стили для тайского текста */
+        .thai-text {
+            font-family: 'Noto Sans Thai', sans-serif;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -85,7 +94,7 @@
                 <p>Talang , Phuket 83110 Thailand</p>
                 <p>Tel. (66 76) 643-888, M. (66 61) 178-1645</p>
             </div>
-            <div class="company-info-th">
+            <div class="company-info-th thai-text">
                 <p>บริษัท เดอะ ซีวิว เดสทิเนชั่น จำกัด สำนักงานใหญ่</p>
                 <p>149 หมู่ที่ 6 ตำบลเชิงทะเล</p>
                 <p>อำเภอถลาง จังหวัดภูเก็ต 83110</p>
@@ -94,12 +103,12 @@
         </div>
 
         <div class="invoice-header">
-            <h2>ใบแจ้งหนี้</h2>
+            <h2 class="thai-text">ใบแจ้งหนี้</h2>
             <h2>Invoice</h2>
         </div>
 
         <div class="invoice-details">
-            <div class="payer-info">
+            <div class="payer-info thai-text">
                 <p>เลขประจำตัวผู้เสียภาษี 0835564009188</p>
                 <p>ชื่อและที่อยู่ผู้ซื้อ Name & Address of Payer</p>
                 <p class="highlight">{{name}}</p>
@@ -170,7 +179,7 @@
         <p><strong>Remark :</strong> This payment period is from 01/08/2025 - 01/09/2025</p>
 
         <div class="total-in-words">
-            <p>จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</p>
+            <p class="thai-text">จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</p>
             <p>One thousand one hundred and forty-nine baht thirty-three satang</p>
             <p>Grand Total ( Baht )</p>
         </div>

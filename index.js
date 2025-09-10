@@ -187,7 +187,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
             const water_start = row['Water Meter numbers'] || '';
-            const water_end = row[__EMPTY_2] || '';
+            const water_end = row['__EMPTY_2'] || '';
 
             console.log(`📊 Обрабатываем строку ${rowIndex}:`, { name, room, water_start, water_end });
 

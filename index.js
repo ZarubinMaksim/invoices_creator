@@ -185,7 +185,6 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
 
         for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
             const row = data[rowIndex];
-            console.log('ROW ROW ROW', row)
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
             const water_start = row['Water Meter numbers'] || '';
@@ -250,8 +249,11 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             try {
                 console.log('📄 Читаем HTML шаблон...');
                 const logoPath = path.join(__dirname, 'img/logo.png');
+                const qrPath = path.join(__dirname, 'img/qr.png');
                 const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+                const qrBase64 = fs.readFileSync(qrPath).toString('base64');
                 const logoDataUri = `data:image/png;base64,${logoBase64}`;
+                const qrDataUri = `data:image/png;base64,${qrBase64}`;
                 let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
                 invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                          .replace('{{room}}', room)
@@ -273,6 +275,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                                          .replace('{{date_to}}', date_to)
                                          .replace('{{total_in_thai}}', total_in_thai)
                                          .replace('{{total_in_english}}', total_in_english)
+                                         .replace('{{qr_base64}}', qrDataUri)
                                          .replace('{{logo_base64}}', logoDataUri);
 
                 // Создаем новую страницу

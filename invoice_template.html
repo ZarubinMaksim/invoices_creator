@@ -60,6 +60,10 @@
             max-width: 120px;
             max-height: 120px;
         }
+        .qr-container img {
+          max-width: 120px;
+            max-height: 120px;
+        }
         .company-info-th {
             width: 40%;
             padding-left: 15px;
@@ -115,6 +119,7 @@
         .totals {
             margin-left: auto;
             width: 50%;
+            line-height: .7;
         }
         .total-row {
             display: flex;
@@ -127,11 +132,30 @@
             border-bottom: 2px solid #333;
             font-weight: bold;
         }
+
+        .total_text {
+  font-size: 14px;
+  line-height: 1.2; /* или 1.1 для компактности */
+  margin-top: 10px;
+}
+        .total-in-words {
+          display: flex;
+          gap: 5px;
+          align-items: center; /* выравнивание по вертикали */
+          
+        }
+
+        .total-in-words p {
+          margin: 3px;     /* убираем внешние отступы */
+          padding: 0;    /* убираем внутренние отступы */
+          line-height: 1; /* минимальная высота строки */
+        }
         .bank-info {
             margin-top: 30px;
             padding: 15px;
             background-color: #f9f9f9;
             border-radius: 5px;
+            font-size: 14px;
         }
         .bank-details {
             margin-bottom: 15px;
@@ -140,11 +164,19 @@
             border-radius: 3px;
             border-left: 3px solid #4CAF50;
         }
+        .bank-details-common {
+          display: flex;
+          gap: 10px;
+          font-size: 10px;
+        }
         .signature {
             text-align: right;
-            margin-top: 50px;
+            margin-top: 10px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            justify-content: end;
         }
         .thai-text {
             font-family: 'Noto Sans Thai', sans-serif;
@@ -266,19 +298,28 @@
             </div>
         </div>
 
-        <p><strong>Remark :</strong> This payment period is from <span>{{date_from}}</span> - <span>{{date_to}}</span></p>
+        <div class="total_text">
+          <div class="total-in-words">
+            <p><strong>Remark :</strong></p>
+            <p class="thai-text"> This payment period is from <span>{{date_from}}</span> - <span>{{date_to}}</span></p>
+          </div>
 
-        <div class="total-in-words">
-            <p class="thai-text">จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</p>
-            <p>{{total_in_thai}}</p>
-            <p>{{total_in_engish}}</p>
-            <p>Grand Total ( Baht )</p>
+          <div class="total-in-words">
+              <p class="thai-text">จำนวนเงินรวมทั้งสิ้น (ตัวอักษร) </p>
+              <p class="thai-text"> {{total_in_thai}}</p>
+          </div>
+  
+          <div class="total-in-words">
+            <p>Grand Total ( Baht ) </p>
+            <p> {{total_in_engish}}</p>
+          </div>
         </div>
+        
 
         <div class="bank-info">
             <p>Please make bank transfer to:</p>
-            
-            <div class="bank-details">
+            <div class="bank-details-common"> 
+              <div class="bank-details">
                 <p><strong>Account Name</strong> : The Seaview Destination Co.,Ltd.</p>
                 <p><strong>Account Number</strong> : 4331652249 (Saving Account)</p>
                 <p><strong>Bank Name</strong> : The Siam Commercial Bank</p>
@@ -291,6 +332,14 @@
                 <p><strong>Bank Name</strong> : Kasikorn Bank</p>
                 <p><strong>Bank Swift Code</strong> : KASITHBK</p>
             </div>
+
+            <div class="qr-container">
+              <img src="{{qr_base64}}" alt="Company Logo">
+            </div>
+
+
+            </div>
+
         </div>
 
         <div class="signature">

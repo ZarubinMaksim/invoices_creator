@@ -43,7 +43,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
   if (!req.file) return res.status(400).send('Файл не загружен');
 
   const workbook = xlsx.readFile(req.file.path);
-  const sheetIndex = workbook.SheetNames.length - 3; // предпоследний лист
+  const sheetIndex = workbook.SheetNames.length - 4; // предпоследний лист
   const sheetName = workbook.SheetNames[sheetIndex];
   const worksheet = workbook.Sheets[sheetName];
 

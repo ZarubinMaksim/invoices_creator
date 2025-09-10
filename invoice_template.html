@@ -25,16 +25,17 @@
         }
         .company-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             align-items: center;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            gap: 5px;
         }
         .company-info-en {
             width: 40%;
             padding-right: 15px;
             line-height: .7;
-            font-size: 14px;
+            font-size: 12px;
         }
         .logo-container {
             width: 10%;
@@ -68,7 +69,8 @@
             width: 40%;
             padding-left: 15px;
             line-height: .7;
-            font-size: 14px;
+            font-size: 12px;
+            text-align: end;
         }
         .invoice-header {
             text-align: center;
@@ -166,6 +168,7 @@
         }
         .bank-details-common {
           display: flex;
+          justify-content: space-around;
           gap: 10px;
           font-size: 10px;
         }
@@ -236,7 +239,7 @@
             <div class="payer-info thai-text">
                 <p>เลขประจำตัวผู้เสียภาษี 0835564009188</p>
                 <p>ชื่อและที่อยู่ผู้ซื้อ Name & Address of Payer</p>
-                <p>{{name}}</p>
+                <p><strong>{{name}}</strong></p>
             </div>
             <div class="invoice-numbers">
                 <p>วันที่ Date <span>05/09/2025</span></p>
@@ -274,7 +277,7 @@
                     <td class="table_amount_end">{{electricity_total}}</td>
                 </tr>
                 <tr>
-                    <td colspan="9">Room no. <span>{{room}}</span></td>
+                    <td colspan="9">Room no. <span><strong>{{room}}</strong></span></td>
                 </tr>
             </tbody>
         </table>
@@ -311,7 +314,7 @@
   
           <div class="total-in-words">
             <p>Grand Total ( Baht ) </p>
-            <p> {{total_in_engish}}</p>
+            <p> {{total_in_english}}</p>
           </div>
         </div>
         

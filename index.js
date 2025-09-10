@@ -3,9 +3,10 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const xlsx = require('xlsx');
+const puppeteer = require('puppeteer');
+
 const app = express();
 const PORT = 4000;
-const puppeteer = require('puppeteer');
 
 // Папка для сохранённых PDF
 const pdfFolder = path.join(__dirname, 'saved_pdf');
@@ -18,7 +19,7 @@ const ROUTE_PREFIX = '/invoices';
 const uploadFolder = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
 
-// Настройка multer с лимитом 100 MB
+// Настройка multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadFolder),
     filename: (req, file, cb) => {
@@ -45,47 +46,53 @@ app.get(`${ROUTE_PREFIX}/`, (req, res) => {
 
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
-  if (!req.file) return res.status(400).send('Файл не загружен');
+    if (!req.file) return res.status(400).send('Файл не загружен');
 
-  const workbook = xlsx.readFile(req.file.path);
-  const sheetIndex = workbook.SheetNames.length - 4; // предпоследний лист
-  const sheetName = workbook.SheetNames[sheetIndex];
-  const worksheet = workbook.Sheets[sheetName];
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetIndex = workbook.SheetNames.length - 2; // предпоследний лист
+    const sheetName = workbook.SheetNames[sheetIndex];
+    const worksheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
-  const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
+    let htmlOverview = `<h1>Файл успешно загружен: ${req.file.filename}</h1>`;
+    htmlOverview += `<h2>PDF в процессе генерации:</h2><ul id="pdf-list">`;
 
-  let htmlOverview = `<h1>Файл успешно загружен: ${req.file.filename}</h1>`;
-  htmlOverview += `<h2>Созданные PDF:</h2><ul>`;
+    // Отправляем клиенту HTML сразу, чтобы браузер не завис
+    res.write(htmlOverview);
 
-  for (let rowIndex = 2; rowIndex < data.length; rowIndex++) { // начиная с третьей строки
-    const row = data[rowIndex];
-    const name = row['Guest name'] || '';
-    const room = row['Room no.'] || '';
-    const amount = row['Total amount'] || '';
+    // Фоновая генерация PDF
+    for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+        const row = data[rowIndex];
+        const name = row['Guest name'] || '';
+        const room = row['Room no.'] || '';
+        const amount = row['Total amount'] || '';
 
-    // Подставляем данные в HTML шаблон
-    let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
-    invoiceHtml = invoiceHtml.replace('{{name}}', name)
-                             .replace('{{room}}', room)
-                             .replace('{{amount}}', amount);
+        // Подставляем данные в шаблон
+        let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+        invoiceHtml = invoiceHtml.replace('{{name}}', name)
+                                 .replace('{{room}}', room)
+                                 .replace('{{amount}}', amount);
 
-    // Генерируем PDF
-    const browser = await puppeteer.launch({ args: ['--no-sandbox'], executablePath: '/usr/bin/chromium-browser', headless: true });
-    const page = await browser.newPage();
-    await page.setContent(invoiceHtml, { waitUntil: 'networkidle0' });
+        // Генерируем PDF
+        const browser = await puppeteer.launch({
+          args: ['--no-sandbox'],
+          headless: true,
+          executablePath: '/usr/bin/chromium-browser' // путь к Chromium
+      });        
+        const page = await browser.newPage();
+        await page.setContent(invoiceHtml, { waitUntil: 'networkidle0' });
 
-    const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
-    await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
-    await browser.close();
+        const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
+        await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
+        await browser.close();
 
-    htmlOverview += `<li>${pdfPath}</li>`;
-    console.log(`created!!!!! ${room}, ${name}`)
-  }
+        // Динамически обновляем страницу клиента
+        res.write(`<li>${pdfPath}</li>`);
+        console.log(`PDF создан: ${room}, ${name}`);
+    }
 
-  htmlOverview += '</ul>';
-  res.send(htmlOverview);
+    res.end('</ul><p>Все PDF созданы!</p>');
 });
-
 
 // Слушаем все внешние подключения
 app.listen(PORT, '0.0.0.0', () => {

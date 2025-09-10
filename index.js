@@ -1,12 +1,17 @@
 const express = require('express');
+
 const app = express();
 const PORT = 4000;
 
-// простой маршрут
+// Главная страница
 app.get('/', (req, res) => {
-  res.send('Hello from Express!');
+    res.send(`
+        <h1>Привет! Это проект Invoices Creator</h1>
+        <p>Сервер работает и доступен через Nginx на /invoices/</p>
+    `);
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+// Слушаем все внешние подключения
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Invoices server запущен на http://38.244.150.204:${PORT}`);
 });

@@ -49,23 +49,35 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
 
   const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
-  // Собираем HTML для вывода
+  // HTML таблица
   let html = `<h1>Файл успешно загружен: ${req.file.filename}</h1>`;
-  html += `<h2>Данные из файла:</h2><ul>`;
+  html += `<h2>Данные из файла:</h2>`;
+  html += `<table border="1" cellpadding="5" cellspacing="0">
+              <thead>
+                  <tr>
+                      <th>Name</th>
+                      <th>Room</th>
+                      <th>Amount</th>
+                  </tr>
+              </thead>
+              <tbody>`;
 
   data.forEach((row, rowIndex) => {
       if (rowIndex < 2) return; // пропустить первые 2 строки
-      if (rowIndex === 6) { // пример: 7-я строка (index 6)
-          const name = row['Guest name'] || 'N/A';
-          const room = row['Room no.'] || 'N/A';
-          const amount = row['Total amount'] || 'N/A';
-          html += `<li>Owner data: Name - ${name}, Room - ${room}, Amount - ${amount}</li>`;
-      }
+      const name = row['Guest name'] || '';
+      const room = row['Room no.'] || '';
+      const amount = row['Total amount'] || '';
+      html += `<tr>
+                  <td>${name}</td>
+                  <td>${room}</td>
+                  <td>${amount}</td>
+               </tr>`;
   });
 
-  html += `</ul>`;
+  html += `</tbody></table>`;
   res.send(html);
 });
+
 
 // Слушаем все внешние подключения
 app.listen(PORT, '0.0.0.0', () => {

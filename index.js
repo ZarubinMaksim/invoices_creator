@@ -6,11 +6,14 @@ const fs = require('fs');
 const app = express();
 const PORT = 4000;
 
+// Префикс маршрута
+const ROUTE_PREFIX = '/invoices';
+
 // Папка для загрузки файлов
 const uploadFolder = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
 
-// Настройка multer
+// Настройка multer с лимитом 100 MB
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadFolder),
     filename: (req, file, cb) => {
@@ -20,15 +23,15 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
+    storage,
+    limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
 });
 
-// Страница с формой загрузки
-app.get('/', (req, res) => {
+// Главная страница с формой загрузки
+app.get(`${ROUTE_PREFIX}/`, (req, res) => {
     res.send(`
         <h1>Загрузка Excel файла</h1>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form action="${ROUTE_PREFIX}/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="excel" accept=".xls,.xlsx" required />
             <button type="submit">Загрузить</button>
         </form>
@@ -36,7 +39,7 @@ app.get('/', (req, res) => {
 });
 
 // Маршрут для загрузки файла
-app.post('/upload', upload.single('excel'), (req, res) => {
+app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
     if (!req.file) return res.status(400).send('Файл не загружен');
 
     console.log('Файл загружен:', req.file.path);
@@ -45,5 +48,5 @@ app.post('/upload', upload.single('excel'), (req, res) => {
 
 // Слушаем все внешние подключения
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Invoices server запущен на http://38.244.150.204:${PORT}`);
+    console.log(`Invoices server запущен на http://38.244.150.204:${PORT}${ROUTE_PREFIX}`);
 });

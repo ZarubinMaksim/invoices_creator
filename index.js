@@ -14,7 +14,6 @@ if (!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadFolder),
     filename: (req, file, cb) => {
-        // Сохраняем файл с оригинальным именем + timestamp
         const ext = path.extname(file.originalname);
         const name = path.basename(file.originalname, ext);
         cb(null, `${name}-${Date.now()}${ext}`);
@@ -40,4 +39,5 @@ app.get('/', (req, res) => {
     `);
 });
 
-app.listen(PORT, () => console.log(`Сервер запущен на http://localhost:${PORT}`));
+// Слушаем все внешние подключения
+app.listen(PORT, '0.0.0.0', () => console.log(`Сервер запущен на http://38.244.150.204:${PORT}`));

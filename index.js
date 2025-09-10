@@ -19,7 +19,10 @@ const storage = multer.diskStorage({
         cb(null, `${name}-${Date.now()}${ext}`);
     }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
+});
 
 // Страница с формой загрузки
 app.get('/', (req, res) => {

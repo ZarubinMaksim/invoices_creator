@@ -52,7 +52,12 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
 
     const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
-    console.log('EXCL', data)
+    data.forEach((row, rowIndex) => {
+      if (rowIndex === 1 || rowIndex === 2) return;
+      if (rowIndex === 6) {
+        console.log(row)
+      }
+  });
 });
 
 // Слушаем все внешние подключения

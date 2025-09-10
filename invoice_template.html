@@ -31,12 +31,13 @@
             flex-wrap: wrap;
         }
         .company-info-en {
-            width: 35%;
+            width: 40%;
             padding-right: 15px;
-            line-height: 0.5;
+            line-height: .7;
+            font-size: 14px;
         }
         .logo-container {
-            width: 20%;
+            width: 10%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -60,14 +61,16 @@
             max-height: 120px;
         }
         .company-info-th {
-            width: 35%;
+            width: 40%;
             padding-left: 15px;
+            line-height: .7;
+            font-size: 14px;
         }
         .invoice-header {
             text-align: center;
-            margin: 20px 0;
-            padding: 10px;
-            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+            margin: 10px 0;
+            padding: .5px;
+            background: #c8f0c9;
             border-radius: 5px;
         }
         .invoice-details {
@@ -75,13 +78,31 @@
             justify-content: space-between;
             margin-bottom: 20px;
         }
-        .payer-info, .invoice-numbers {
+        .payer-info {
             width: 48%;
+            line-height: .7;
+        }
+        .invoice-numbers{
+          width: 48%;
+          text-align: end;
+          line-height: .7;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+        }
+        .table_1_col {
+          width: 45%;
+        }
+        .table_title {
+          font-size: 15px;
+        }
+        .table_meter_center {
+          text-align: center;
+        }
+        .table_amount_end {
+          text-align: end;
         }
         th, td {
             border: 1px solid #ddd;
@@ -125,14 +146,9 @@
             padding-top: 20px;
             border-top: 1px solid #ddd;
         }
-        .highlight {
-            background-color: #ffffcc;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
         .thai-text {
             font-family: 'Noto Sans Thai', sans-serif;
-            line-height: 1.6;
+            line-height: .7;
         }
         .instructions {
             margin-top: 30px;
@@ -188,48 +204,45 @@
             <div class="payer-info thai-text">
                 <p>เลขประจำตัวผู้เสียภาษี 0835564009188</p>
                 <p>ชื่อและที่อยู่ผู้ซื้อ Name & Address of Payer</p>
-                <p class="highlight">{{name}}</p>
+                <p>{{name}}</p>
             </div>
             <div class="invoice-numbers">
-                <p>วันที่ Date <span class="highlight">05/09/2025</span></p>
-                <p>เลขที่ / Invoice No. <span class="highlight">PS202508-065</span></p>
+                <p>วันที่ Date <span>05/09/2025</span></p>
+                <p>เลขที่ / Invoice No. <span>PS202508-065</span></p>
                 <p>เลขประจำตัวผู้เสียภาษี Tax ID</p>
             </div>
         </div>
 
         <table>
-            <thead>
+            <thead class="table_title">
                 <tr>
-                    <th>Description</th>
-                    <th colspan="3"></th>
+                    <th class="table_1_col">Description</th>
                     <th>Meter Start</th>
                     <th>Meter End</th>
                     <th>Consumption</th>
                     <th>Price</th>
-                    <th>Total {{amount}}</th>
+                    <th>Total</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Water</td>
-                    <td colspan="3"></td>
-                    <td>42</td>
-                    <td>45.5</td>
-                    <td>3.5</td>
-                    <td>89</td>
-                    <td>311.5</td>
+                    <td class="table_meter_center">{{water_start}}</td>
+                    <td class="table_meter_center">{{water_end}}</td>
+                    <td class="table_amount_end">{{water_consumption}}</td>
+                    <td class="table_amount_end">{{water_price}}</td>
+                    <td class="table_amount_end">{{water_total}}</td>
                 </tr>
                 <tr>
                     <td>Electricity</td>
-                    <td colspan="3"></td>
-                    <td>1267.51</td>
-                    <td>1362.84</td>
-                    <td>95.33</td>
-                    <td>8</td>
-                    <td>762.64</td>
+                    <td class="table_meter_center">{{electricity_start}}</td>
+                    <td class="table_meter_center">{{electricity_end}}</td>
+                    <td class="table_amount_end">{{electricity_consumption}}</td>
+                    <td class="table_amount_end">{{electricity_price}}</td>
+                    <td class="table_amount_end">{{electricity_total}}</td>
                 </tr>
                 <tr>
-                    <td colspan="9">Room no. <span class="highlight">{{room}}</span></td>
+                    <td colspan="9">Room no. <span>{{room}}</span></td>
                 </tr>
             </tbody>
         </table>
@@ -237,19 +250,19 @@
         <div class="totals">
             <div class="total-row">
                 <div>Total</div>
-                <div>1,074.14</div>
+                <div>{{amount_total}}</div>
             </div>
             <div class="total-row">
                 <div>Amount Before Vat</div>
-                <div>1,074.14</div>
+                <div>{{amount_before_vat}}</div>
             </div>
             <div class="total-row">
                 <div>Vat</div>
-                <div>75.19</div>
+                <div>{{vat}}</div>
             </div>
             <div class="total-row">
                 <div>Grand Total (NET)</div>
-                <div>1,149.33</div>
+                <div>{{amount_total_net}}</div>
             </div>
         </div>
 
@@ -283,13 +296,6 @@
             <p>Sumolthip K.</p>
             <p>..........................................</p>
             <p>Ms.Sumolthip Kraisuwan</p>
-        </div>
-
-        <div class="instructions">
-            <h3>Инструкция по использованию логотипа:</h3>
-            <p>1. Замените блок с классом "logo-placeholder" на тег img с указанием пути к вашему логотипу</p>
-            <p>2. Убедитесь, что путь к изображению правильный (img/logo.png)</p>
-            <p>3. Для лучшего отображения в PDF используйте логотип с прозрачным фоном в формате PNG</p>
         </div>
     </div>
 </body>

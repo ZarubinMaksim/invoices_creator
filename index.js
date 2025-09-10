@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-
+const xlsx = require('xlsx');
 const app = express();
 const PORT = 4000;
 
@@ -44,6 +44,15 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
 
     console.log('Файл загружен:', req.file.path);
     res.send(`Файл успешно загружен: ${req.file.filename}`);
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheetIndex = workbook.SheetNames.length - 3;
+    const sheetName = workbook.SheetNames[sheetIndex];
+    const worksheet = workbook.Sheets[sheetName];
+
+    const data = xlsx.utils.sheet_add_json(worksheet, { defval: '' });
+
+    console.log('EXCL', data)
 });
 
 // Слушаем все внешние подключения

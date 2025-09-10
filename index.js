@@ -55,7 +55,10 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
     data.forEach((row, rowIndex) => {
       if (rowIndex === 1 || rowIndex === 2) return;
       if (rowIndex === 6) {
-        console.log(row)
+        const name = row['Guest name'];
+        const room = row['Room no.'];
+        const amount = row['Total amount'];
+        console.log(`Here is owner data: name - ${name}, room: ${room}, amount: ${amount}`)
       }
   });
 });

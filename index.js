@@ -10,6 +10,7 @@ const { execSync } = require('child_process');
 
 console.log('🚀 Инициализация сервера...');
 
+app.use('/static', express.static(path.join(__dirname, 'img')));
 // Убиваем все висящие процессы Chromium перед запуском
 console.log('🔄 Убиваем висящие процессы Chromium...');
 try {

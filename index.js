@@ -6,14 +6,24 @@ const xlsx = require('xlsx');
 const app = express();
 const PORT = 4000;
 const puppeteer = require('puppeteer');
+const { execSync } = require('child_process');
 
 console.log('🚀 Инициализация сервера...');
+
+// Убиваем все висящие процессы Chromium перед запуском
+console.log('🔄 Убиваем висящие процессы Chromium...');
+try {
+    execSync('pkill -f chromium', { stdio: 'ignore' });
+    console.log('✅ Процессы Chromium завершены');
+} catch (error) {
+    console.log('ℹ️ Не было процессов Chromium для завершения');
+}
 
 // Папка для сохранённых PDF
 const pdfFolder = path.join(__dirname, 'saved_pdf');
 if (!fs.existsSync(pdfFolder)) {
     console.log('📁 Создаем папку для PDF:', pdfFolder);
-    fs.mkdirSync(pdfFolder);
+    fs.mkdirSync(pdfFolder, { recursive: true });
 } else {
     console.log('📁 Папка для PDF уже существует:', pdfFolder);
 }
@@ -25,12 +35,12 @@ const ROUTE_PREFIX = '/invoices';
 const uploadFolder = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadFolder)) {
     console.log('📁 Создаем папку для загрузок:', uploadFolder);
-    fs.mkdirSync(uploadFolder);
+    fs.mkdirSync(uploadFolder, { recursive: true });
 } else {
     console.log('📁 Папка для загрузок уже существует:', uploadFolder);
 }
 
-// Настройка multer с лимитом 100 MB
+// Настройка multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         console.log('📂 Сохраняем файл в:', uploadFolder);
@@ -46,13 +56,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
     storage,
-    limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
+    limits: { fileSize: 100 * 1024 * 1024 }
 });
 
 // Глобальная переменная для браузера
 let browserInstance = null;
 
-// Функция для получения экземпляра браузера (синглтон)
+// Функция для получения экземпляра браузера
 async function getBrowser() {
     if (!browserInstance) {
         console.log('🌐 Запускаем браузер...');
@@ -65,29 +75,33 @@ async function getBrowser() {
                 '--disable-gpu',
                 '--single-process',
                 '--no-zygote',
-                '--disable-extensions'
+                '--disable-extensions',
+                '--disable-software-rasterizer',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding'
             ],
-            headless: true,
-            timeout: 60000, // Увеличиваем таймаут до 60 секунд
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser'
+            headless: 'new',
+            timeout: 120000,
+            executablePath: '/snap/chromium/current/usr/lib/chromium-browser/chrome'
         };
         
-        console.log('⚙️ Параметры запуска браузера:', JSON.stringify(launchOptions));
+        console.log('⚙️ Параметры запуска:', launchOptions);
         
         try {
             browserInstance = await puppeteer.launch(launchOptions);
             console.log('✅ Браузер успешно запущен');
             
-            // Проверяем, что браузер работает
+            // Проверяем версию
             const version = await browserInstance.version();
             console.log('🌐 Версия браузера:', version);
             
         } catch (error) {
             console.error('❌ Ошибка запуска браузера:', error);
             
-            // Пробуем альтернативный путь к исполняемому файлу
-            console.log('🔄 Пробуем альтернативный путь к браузеру...');
-            launchOptions.executablePath = '/usr/bin/google-chrome-stable' || '/usr/bin/chromium';
+            // Пробуем альтернативный путь
+            console.log('🔄 Пробуем альтернативный путь...');
+            launchOptions.executablePath = '/usr/bin/chromium-browser';
             
             try {
                 browserInstance = await puppeteer.launch(launchOptions);
@@ -97,26 +111,9 @@ async function getBrowser() {
                 throw retryError;
             }
         }
-    } else {
-        console.log('🔁 Используем существующий экземпляр браузера');
     }
+    
     return browserInstance;
-}
-
-// Функция для проверки доступности браузера
-async function checkBrowserHealth() {
-    try {
-        if (browserInstance) {
-            const pages = await browserInstance.pages();
-            console.log('✅ Браузер здоров, открыто страниц:', pages.length);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error('❌ Браузер не отвечает:', error);
-        browserInstance = null;
-        return false;
-    }
 }
 
 // Главная страница с формой загрузки
@@ -141,32 +138,26 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
     }
 
     console.log('✅ Файл загружен:', req.file.filename);
-    console.log('📊 Путь к файлу:', req.file.path);
 
     try {
         console.log('📖 Читаем Excel файл...');
         const workbook = xlsx.readFile(req.file.path);
         console.log('✅ Файл прочитан успешно');
         
-        const sheetIndex = workbook.SheetNames.length - 4; // предпоследний лист
+        const sheetIndex = workbook.SheetNames.length - 4;
         const sheetName = workbook.SheetNames[sheetIndex];
-        console.log('📑 Выбран лист:', sheetName, '(индекс:', sheetIndex, ')');
+        console.log('📑 Выбран лист:', sheetName);
         
         const worksheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
         
         console.log('📈 Найдено строк:', data.length);
-        if (data.length > 0) {
-            console.log('🔍 Пример данных первой строки:', JSON.stringify(data[0]));
-        }
 
-        // Отправляем начальный ответ, чтобы избежать таймаута
         res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
             'Transfer-Encoding': 'chunked'
         });
         
-        console.log('📨 Отправляем начальный HTML ответ');
         res.write(`
             <h1>Файл успешно загружен: ${req.file.filename}</h1>
             <h2>Создание PDF:</h2>
@@ -182,14 +173,13 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             </script>
         `);
 
-        // Получаем браузер один раз для всех PDF
+        // Получаем браузер
         console.log('🖥️ Получаем экземпляр браузера...');
         const browser = await getBrowser();
         console.log('✅ Браузер готов к работе');
         
         let successCount = 0;
         let errorCount = 0;
-        let skipCount = 0;
 
         for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
             const row = data[rowIndex];
@@ -197,12 +187,10 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const room = row['Room no.'] || '';
             const amount = row['Total amount'] || '';
 
-            console.log(`\n📊 Обрабатываем строку ${rowIndex}:`, { name, room, amount });
+            console.log(`📊 Обрабатываем строку ${rowIndex}:`, { name, room, amount });
 
-            // Пропускаем пустые строки
             if (!name && !room && !amount) {
                 console.log('⏭️ Пропускаем пустую строку');
-                skipCount++;
                 continue;
             }
 
@@ -212,28 +200,16 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                          .replace('{{room}}', room)
                                          .replace('{{amount}}', amount);
-                console.log('✅ Шаблон подготовлен');
 
-                // Проверяем здоровье браузера перед созданием страницы
-                if (!await checkBrowserHealth()) {
-                    console.log('🔄 Браузер не отвечает, перезапускаем...');
-                    browserInstance = null;
-                    const newBrowser = await getBrowser();
-                    console.log('✅ Браузер перезапущен');
-                }
-
-                // Создаем новую страницу для каждого PDF
-                console.log('🆕 Создаем новую страницу в браузере...');
+                // Создаем новую страницу
+                console.log('🆕 Создаем новую страницу...');
                 const page = await browser.newPage();
-                console.log('✅ Страница создана');
-
-                // Устанавливаем таймаут для загрузки контента
-                console.log('🔄 Устанавливаем контент страницы...');
+                
+                console.log('🔄 Устанавливаем контент...');
                 await page.setContent(invoiceHtml, { 
                     waitUntil: 'networkidle0',
-                    timeout: 30000 
+                    timeout: 30000
                 });
-                console.log('✅ Контент установлен');
 
                 const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
                 console.log('🖨️ Генерируем PDF:', pdfPath);
@@ -246,53 +222,29 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 });
                 
                 console.log('✅ PDF успешно создан');
-                
-                console.log('❌ Закрываем страницу...');
                 await page.close();
-                console.log('✅ Страница закрыта');
                 
-                // Отправляем информацию о созданном PDF клиенту
-                console.log('📤 Отправляем информацию клиенту');
                 res.write(`<script>addPdfItem("${name} - ${room} - ${pdfPath}");</script>`);
-                console.log(`✅ Готово: ${room}, ${name}`);
-                
                 successCount++;
                 
             } catch (error) {
-                console.error(`❌ Ошибка при создании PDF для ${name} (${room}):`, error);
-                res.write(`<script>addPdfItem("ОШИБКА: ${name} - ${room}");</script>`);
+                console.error('❌ Ошибка:', error);
                 errorCount++;
-                
-                // Сбрасываем браузер при серьезной ошибке
-                if (error.message.includes('Protocol error') || error.message.includes('Session closed')) {
-                    console.log('🔄 Серьезная ошибка браузера, сбрасываем экземпляр');
-                    browserInstance = null;
-                }
+                res.write(`<script>addPdfItem("ОШИБКА: ${name} - ${room}");</script>`);
             }
         }
 
-        console.log(`\n📊 ИТОГО: Успешно: ${successCount}, Ошибок: ${errorCount}, Пропущено: ${skipCount}`);
-
-        // Завершаем ответ
-        console.log('🏁 Завершаем ответ');
-        res.write(`<h3>Генерация PDF завершена! Успешно: ${successCount}, Ошибок: ${errorCount}</h3>`);
+        res.write(`<h3>Генерация завершена! Успешно: ${successCount}, Ошибок: ${errorCount}</h3>`);
         res.end();
-        console.log('✅ Ответ завершен');
+        console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
 
     } catch (error) {
-        console.error('❌ Критическая ошибка при обработке файла:', error);
-        if (!res.headersSent) {
-            res.status(500).send('Ошибка при обработке файла: ' + error.message);
-        } else {
-            res.write(`<script>addPdfItem("Критическая ошибка: ${error.message}");</script>`);
-            res.end();
-        }
-    } finally {
-        console.log('🧹 Очистка завершена');
+        console.error('❌ Критическая ошибка:', error);
+        res.status(500).send('Ошибка: ' + error.message);
     }
 });
 
-// Обработка завершения приложения для закрытия браузера
+// Обработка завершения приложения
 process.on('SIGINT', async () => {
     console.log('\n🛑 Получен сигнал SIGINT, завершаем работу...');
     if (browserInstance) {
@@ -306,7 +258,6 @@ process.on('SIGINT', async () => {
 
 // Слушаем все внешние подключения
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Invoices server запущен на http://38.244.150.204:${PORT}${ROUTE_PREFIX}`);
-    console.log('📝 Логи процесса будут выводиться здесь');
-    console.log('='.repeat(50));
+    console.log(`✅ Invoices server запущен на порту ${PORT}`);
+    console.log(`📋 Доступно по: http://38.244.150.204:${PORT}${ROUTE_PREFIX}`);
 });

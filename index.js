@@ -10,7 +10,6 @@ const { execSync } = require('child_process');
 
 console.log('🚀 Инициализация сервера...');
 
-app.use('/static', express.static(path.join(__dirname, 'img')));
 // Убиваем все висящие процессы Chromium перед запуском
 console.log('🔄 Убиваем висящие процессы Chromium...');
 try {
@@ -198,6 +197,8 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             try {
                 console.log('📄 Читаем HTML шаблон...');
                 let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+                const logoPath = 'file://' + path.join(__dirname, 'img/logo.png');
+                invoiceHtml = invoiceHtml.replace('img/logo.png', logoPath);    
                 invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                          .replace('{{room}}', room)
                                          .replace('{{amount}}', amount);

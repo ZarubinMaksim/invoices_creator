@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Template</title>
+    <title>Invoice Template with Logo</title>
     <style>
-        /* Добавляем шрифты с поддержкой тайского языка */
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap');
         
         body {
@@ -13,6 +12,7 @@
             margin: 0;
             padding: 20px;
             color: #000;
+            background-color: #f8f9fa;
         }
         .invoice-container {
             max-width: 900px;
@@ -20,18 +20,54 @@
             border: 1px solid #ddd;
             padding: 20px;
             box-sizing: border-box;
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
         .company-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
-        .company-info-en, .company-info-th {
-            width: 48%;
+        .company-info-en {
+            width: 35%;
+            padding-right: 15px;
+        }
+        .logo-container {
+            width: 20%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .logo-placeholder {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #888;
+            font-size: 14px;
+            text-align: center;
+            background-color: #f0f0f0;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+        }
+        .logo-container img {
+            max-width: 120px;
+            max-height: 120px;
+        }
+        .company-info-th {
+            width: 35%;
+            padding-left: 15px;
         }
         .invoice-header {
             text-align: center;
             margin: 20px 0;
+            padding: 10px;
+            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+            border-radius: 5px;
         }
         .invoice-details {
             display: flex;
@@ -62,26 +98,61 @@
             display: flex;
             justify-content: space-between;
             margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px dotted #eee;
+        }
+        .total-row:last-child {
+            border-bottom: 2px solid #333;
+            font-weight: bold;
         }
         .bank-info {
             margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
         }
         .bank-details {
             margin-bottom: 15px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 3px;
+            border-left: 3px solid #4CAF50;
         }
         .signature {
             text-align: right;
             margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
         }
         .highlight {
             background-color: #ffffcc;
             padding: 2px 5px;
+            border-radius: 3px;
         }
-        
-        /* Специфические стили для тайского текста */
         .thai-text {
             font-family: 'Noto Sans Thai', sans-serif;
             line-height: 1.6;
+        }
+        .instructions {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        @media (max-width: 768px) {
+            .company-header {
+                flex-direction: column;
+            }
+            .company-info-en, .logo-container, .company-info-th {
+                width: 100%;
+                margin-bottom: 15px;
+                padding: 0;
+            }
         }
     </style>
 </head>
@@ -89,13 +160,18 @@
     <div class="invoice-container">
         <div class="company-header">
             <div class="company-info-en">
-                <p>The Seaview Destination Co., Ltd. (Head Office)</p>
+                <p><strong>The Seaview Destination Co., Ltd. (Head Office)</strong></p>
                 <p>149 Moo 6, Tambol Cherngtalay</p>
                 <p>Talang , Phuket 83110 Thailand</p>
                 <p>Tel. (66 76) 643-888, M. (66 61) 178-1645</p>
             </div>
+            
+            <div class="logo-container">
+              <img src="img/logo.png" alt="Company Logo">
+            </div>
+            
             <div class="company-info-th thai-text">
-                <p>บริษัท เดอะ ซีวิว เดสทิเนชั่น จำกัด สำนักงานใหญ่</p>
+                <p><strong>บริษัท เดอะ ซีวิว เดสทิเนชั่น จำกัด สำนักงานใหญ่</strong></p>
                 <p>149 หมู่ที่ 6 ตำบลเชิงทะเล</p>
                 <p>อำเภอถลาง จังหวัดภูเก็ต 83110</p>
                 <p>โทร.(66 76) 643-888, มือถือ (66 61) 178-1645</p>
@@ -207,13 +283,13 @@
             <p>..........................................</p>
             <p>Ms.Sumolthip Kraisuwan</p>
         </div>
-    </div>
 
-    <script>
-        // JavaScript для вычисления значений (опционально)
-        document.addEventListener('DOMContentLoaded', function() {
-            // Можно добавить вычисления, если нужно сделать интерактивным
-        });
-    </script>
+        <div class="instructions">
+            <h3>Инструкция по использованию логотипа:</h3>
+            <p>1. Замените блок с классом "logo-placeholder" на тег img с указанием пути к вашему логотипу</p>
+            <p>2. Убедитесь, что путь к изображению правильный (img/logo.png)</p>
+            <p>3. Для лучшего отображения в PDF используйте логотип с прозрачным фоном в формате PNG</p>
+        </div>
+    </div>
 </body>
 </html>

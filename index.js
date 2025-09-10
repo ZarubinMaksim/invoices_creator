@@ -50,7 +50,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
     const sheetName = workbook.SheetNames[sheetIndex];
     const worksheet = workbook.Sheets[sheetName];
 
-    const data = xlsx.utils.sheet_add_json(worksheet, { defval: '' });
+    const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
     console.log('EXCL', data)
 });

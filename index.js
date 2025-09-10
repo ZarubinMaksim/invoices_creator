@@ -56,16 +56,67 @@ let browserInstance = null;
 async function getBrowser() {
     if (!browserInstance) {
         console.log('🌐 Запускаем браузер...');
-        browserInstance = await puppeteer.launch({ 
-            args: ['--no-sandbox', '--disable-setuid-sandbox'], 
-            executablePath: '/usr/bin/chromium-browser', 
-            headless: true 
-        });
-        console.log('✅ Браузер успешно запущен');
+        
+        const launchOptions = {
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--single-process',
+                '--no-zygote',
+                '--disable-extensions'
+            ],
+            headless: true,
+            timeout: 60000, // Увеличиваем таймаут до 60 секунд
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser'
+        };
+        
+        console.log('⚙️ Параметры запуска браузера:', JSON.stringify(launchOptions));
+        
+        try {
+            browserInstance = await puppeteer.launch(launchOptions);
+            console.log('✅ Браузер успешно запущен');
+            
+            // Проверяем, что браузер работает
+            const version = await browserInstance.version();
+            console.log('🌐 Версия браузера:', version);
+            
+        } catch (error) {
+            console.error('❌ Ошибка запуска браузера:', error);
+            
+            // Пробуем альтернативный путь к исполняемому файлу
+            console.log('🔄 Пробуем альтернативный путь к браузеру...');
+            launchOptions.executablePath = '/usr/bin/google-chrome-stable' || '/usr/bin/chromium';
+            
+            try {
+                browserInstance = await puppeteer.launch(launchOptions);
+                console.log('✅ Браузер запущен с альтернативным путем');
+            } catch (retryError) {
+                console.error('❌ Ошибка при повторной попытке запуска:', retryError);
+                throw retryError;
+            }
+        }
     } else {
         console.log('🔁 Используем существующий экземпляр браузера');
     }
     return browserInstance;
+}
+
+// Функция для проверки доступности браузера
+async function checkBrowserHealth() {
+    try {
+        if (browserInstance) {
+            const pages = await browserInstance.pages();
+            console.log('✅ Браузер здоров, открыто страниц:', pages.length);
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('❌ Браузер не отвечает:', error);
+        browserInstance = null;
+        return false;
+    }
 }
 
 // Главная страница с формой загрузки
@@ -105,7 +156,9 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
         
         console.log('📈 Найдено строк:', data.length);
-        console.log('🔍 Пример данных первой строки:', JSON.stringify(data[0]));
+        if (data.length > 0) {
+            console.log('🔍 Пример данных первой строки:', JSON.stringify(data[0]));
+        }
 
         // Отправляем начальный ответ, чтобы избежать таймаута
         res.writeHead(200, {
@@ -161,13 +214,25 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                                          .replace('{{amount}}', amount);
                 console.log('✅ Шаблон подготовлен');
 
+                // Проверяем здоровье браузера перед созданием страницы
+                if (!await checkBrowserHealth()) {
+                    console.log('🔄 Браузер не отвечает, перезапускаем...');
+                    browserInstance = null;
+                    const newBrowser = await getBrowser();
+                    console.log('✅ Браузер перезапущен');
+                }
+
                 // Создаем новую страницу для каждого PDF
                 console.log('🆕 Создаем новую страницу в браузере...');
                 const page = await browser.newPage();
                 console.log('✅ Страница создана');
 
+                // Устанавливаем таймаут для загрузки контента
                 console.log('🔄 Устанавливаем контент страницы...');
-                await page.setContent(invoiceHtml, { waitUntil: 'networkidle0' });
+                await page.setContent(invoiceHtml, { 
+                    waitUntil: 'networkidle0',
+                    timeout: 30000 
+                });
                 console.log('✅ Контент установлен');
 
                 const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
@@ -176,7 +241,8 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 await page.pdf({ 
                     path: pdfPath, 
                     format: 'A4', 
-                    printBackground: true 
+                    printBackground: true,
+                    timeout: 30000
                 });
                 
                 console.log('✅ PDF успешно создан');
@@ -196,6 +262,12 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 console.error(`❌ Ошибка при создании PDF для ${name} (${room}):`, error);
                 res.write(`<script>addPdfItem("ОШИБКА: ${name} - ${room}");</script>`);
                 errorCount++;
+                
+                // Сбрасываем браузер при серьезной ошибке
+                if (error.message.includes('Protocol error') || error.message.includes('Session closed')) {
+                    console.log('🔄 Серьезная ошибка браузера, сбрасываем экземпляр');
+                    browserInstance = null;
+                }
             }
         }
 

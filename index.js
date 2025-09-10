@@ -70,7 +70,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                              .replace('{{amount}}', amount);
 
     // Генерируем PDF
-    const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    const browser = await puppeteer.launch({ args: ['--no-sandbox'], executablePath: '/usr/bin/chromium-browser', headless: true });
     const page = await browser.newPage();
     await page.setContent(invoiceHtml, { waitUntil: 'networkidle0' });
 

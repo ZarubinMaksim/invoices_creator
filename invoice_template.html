@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Template</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #000;
+        }
+        .invoice-container {
+            max-width: 900px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .company-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .company-info-en, .company-info-th {
+            width: 48%;
+        }
+        .invoice-header {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .payer-info, .invoice-numbers {
+            width: 48%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .totals {
+            margin-left: auto;
+            width: 50%;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .bank-info {
+            margin-top: 30px;
+        }
+        .bank-details {
+            margin-bottom: 15px;
+        }
+        .signature {
+            text-align: right;
+            margin-top: 50px;
+        }
+        .highlight {
+            background-color: #ffffcc;
+            padding: 2px 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="company-header">
+            <div class="company-info-en">
+                <p>The Seaview Destination Co., Ltd. (Head Office)</p>
+                <p>149 Moo 6, Tambol Cherngtalay</p>
+                <p>Talang , Phuket 83110 Thailand</p>
+                <p>Tel. (66 76) 643-888, M. (66 61) 178-1645</p>
+            </div>
+            <div class="company-info-th">
+                <p>บริษัท เดอะ ซีวิว เดสทิเนชั่น จำกัด สำนักงานใหญ่</p>
+                <p>149 หมู่ที่ 6 ตำบลเชิงทะเล</p>
+                <p>อำเภอถลาง จังหวัดภูเก็ต 83110</p>
+                <p>โทร.(66 76) 643-888, มือถือ (66 61) 178-1645</p>
+            </div>
+        </div>
+
+        <div class="invoice-header">
+            <h2>ใบแจ้งหนี้</h2>
+            <h2>Invoice</h2>
+        </div>
+
+        <div class="invoice-details">
+            <div class="payer-info">
+                <p>เลขประจำตัวผู้เสียภาษี 0835564009188</p>
+                <p>ชื่อและที่อยู่ผู้ซื้อ Name & Address of Payer</p>
+                <p class="highlight">{{name}}</p>
+            </div>
+            <div class="invoice-numbers">
+                <p>วันที่ Date <span class="highlight">05/09/2025</span></p>
+                <p>เลขที่ / Invoice No. <span class="highlight">PS202508-065</span></p>
+                <p>เลขประจำตัวผู้เสียภาษี Tax ID</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th colspan="3"></th>
+                    <th>Meter Start</th>
+                    <th>Meter End</th>
+                    <th>Consumption</th>
+                    <th>Price</th>
+                    <th>Total {{amount}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Water</td>
+                    <td colspan="3"></td>
+                    <td>42</td>
+                    <td>45.5</td>
+                    <td>3.5</td>
+                    <td>89</td>
+                    <td>311.5</td>
+                </tr>
+                <tr>
+                    <td>Electricity</td>
+                    <td colspan="3"></td>
+                    <td>1267.51</td>
+                    <td>1362.84</td>
+                    <td>95.33</td>
+                    <td>8</td>
+                    <td>762.64</td>
+                </tr>
+                <tr>
+                    <td colspan="9">Room no. <span class="highlight">{{room}}</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div class="total-row">
+                <div>Total</div>
+                <div>1,074.14</div>
+            </div>
+            <div class="total-row">
+                <div>Amount Before Vat</div>
+                <div>1,074.14</div>
+            </div>
+            <div class="total-row">
+                <div>Vat</div>
+                <div>75.19</div>
+            </div>
+            <div class="total-row">
+                <div>Grand Total (NET)</div>
+                <div>1,149.33</div>
+            </div>
+        </div>
+
+        <p><strong>Remark :</strong> This payment period is from 01/08/2025 - 01/09/2025</p>
+
+        <div class="total-in-words">
+            <p>จำนวนเงินรวมทั้งสิ้น (ตัวอักษร)</p>
+            <p>One thousand one hundred and forty-nine baht thirty-three satang</p>
+            <p>Grand Total ( Baht )</p>
+        </div>
+
+        <div class="bank-info">
+            <p>Please make bank transfer to:</p>
+            
+            <div class="bank-details">
+                <p><strong>Account Name</strong> : The Seaview Destination Co.,Ltd.</p>
+                <p><strong>Account Number</strong> : 4331652249 (Saving Account)</p>
+                <p><strong>Bank Name</strong> : The Siam Commercial Bank</p>
+                <p><strong>Bank Swift Code</strong> : SICOTHBK</p>
+            </div>
+            
+            <div class="bank-details">
+                <p><strong>Account Name</strong> : The Seaview Destination Co.,Ltd.</p>
+                <p><strong>Account Number</strong> : 1501803649 (Saving Account)</p>
+                <p><strong>Bank Name</strong> : Kasikorn Bank</p>
+                <p><strong>Bank Swift Code</strong> : KASITHBK</p>
+            </div>
+        </div>
+
+        <div class="signature">
+            <p>Sumolthip K.</p>
+            <p>..........................................</p>
+            <p>Ms.Sumolthip Kraisuwan</p>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript для вычисления значений (опционально)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Можно добавить вычисления, если нужно сделать интерактивным
+        });
+    </script>
+</body>
+</html>

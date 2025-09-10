@@ -5,6 +5,11 @@ const fs = require('fs');
 const xlsx = require('xlsx');
 const app = express();
 const PORT = 4000;
+const puppeteer = require('puppeteer');
+
+// Папка для сохранённых PDF
+const pdfFolder = path.join(__dirname, 'saved_pdf');
+if (!fs.existsSync(pdfFolder)) fs.mkdirSync(pdfFolder);
 
 // Префикс маршрута
 const ROUTE_PREFIX = '/invoices';
@@ -39,7 +44,7 @@ app.get(`${ROUTE_PREFIX}/`, (req, res) => {
 });
 
 // Маршрут для загрузки файла
-app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
+app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
   if (!req.file) return res.status(400).send('Файл не загружен');
 
   const workbook = xlsx.readFile(req.file.path);
@@ -49,33 +54,35 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
 
   const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
-  // HTML таблица
-  let html = `<h1>Файл успешно загружен: ${req.file.filename}</h1>`;
-  html += `<h2>Данные из файла:</h2>`;
-  html += `<table border="1" cellpadding="5" cellspacing="0">
-              <thead>
-                  <tr>
-                      <th>Name</th>
-                      <th>Room</th>
-                      <th>Amount</th>
-                  </tr>
-              </thead>
-              <tbody>`;
+  let htmlOverview = `<h1>Файл успешно загружен: ${req.file.filename}</h1>`;
+  htmlOverview += `<h2>Созданные PDF:</h2><ul>`;
 
-  data.forEach((row, rowIndex) => {
-      if (rowIndex < 2) return; // пропустить первые 2 строки
-      const name = row['Guest name'] || '';
-      const room = row['Room no.'] || '';
-      const amount = row['Total amount'] || '';
-      html += `<tr>
-                  <td>${name}</td>
-                  <td>${room}</td>
-                  <td>${amount}</td>
-               </tr>`;
-  });
+  for (let rowIndex = 2; rowIndex < data.length; rowIndex++) { // начиная с третьей строки
+    const row = data[rowIndex];
+    const name = row['Guest name'] || '';
+    const room = row['Room no.'] || '';
+    const amount = row['Total amount'] || '';
 
-  html += `</tbody></table>`;
-  res.send(html);
+    // Подставляем данные в HTML шаблон
+    let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+    invoiceHtml = invoiceHtml.replace('{{name}}', name)
+                             .replace('{{room}}', room)
+                             .replace('{{amount}}', amount);
+
+    // Генерируем PDF
+    const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(invoiceHtml, { waitUntil: 'networkidle0' });
+
+    const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
+    await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
+    await browser.close();
+
+    htmlOverview += `<li>${pdfPath}</li>`;
+  }
+
+  htmlOverview += '</ul>';
+  res.send(htmlOverview);
 });
 
 

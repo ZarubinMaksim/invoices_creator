@@ -12,7 +12,9 @@
   "dependencies": {
     "express": "^5.1.0",
     "multer": "^2.0.2",
+    "number-to-words": "^1.2.4",
     "puppeteer": "^24.19.0",
+    "thai-baht-text": "^2.0.5",
     "xlsx": "^0.18.5"
   }
 }

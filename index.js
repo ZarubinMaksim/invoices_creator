@@ -7,6 +7,8 @@ const app = express();
 const PORT = 4000;
 const puppeteer = require('puppeteer');
 const { execSync } = require('child_process');
+const toThaiBahtText = require('thai-baht-text');
+const { toWords } = require('number-to-words');
 
 console.log('🚀 Инициализация сервера...');
 
@@ -188,11 +190,59 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const room = row['Room no.'] || '';
             const water_start = row['Water Meter numbers'] || '';
             const water_end = row['__EMPTY_2'] || '';
-            const amount = 0;
+            const water_consumption = row['Water consumption'] || '';
+            const water_price = 89;
+            const water_total = row['__EMPTY_3'] || '';
+            const electricity_start = row['Electricity Meter numbers'] || '';
+            const electricity_end = row['__EMPTY_4'] || '';
+            const electricity_consumption = row['Eletricity'] || '';
+            const electricity_price = 8;
+            const electricity_total = row['__EMPTY_5'] || '';
+            const amount_total = row['Before amount'] || '';
+            const amount_before_vat = row['Before amount'] || '';
+            const vat = row['SVC'] || '';
+            const amount_total_net = row['Total amount'] || '';
+            const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
+            const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
+            const total_in_thai = toThaiBahtText(amount_total_net)
+            const total_in_english = toWords(amount_total_net)
 
-            console.log(`📊 Обрабатываем строку ${rowIndex}:`, { name, room, water_start, water_end });
+            function excelDateToDDMMYYYY(serial) {
+              const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
+              const days = Math.floor(serial);
+              const milliseconds = days * 24 * 60 * 60 * 1000;
+              const date = new Date(excelEpoch.getTime() + milliseconds);
+            
+              const dd = String(date.getUTCDate()).padStart(2, '0');
+              const mm = String(date.getUTCMonth() + 1).padStart(2, '0'); // месяцы с 0
+              const yyyy = date.getUTCFullYear();
+            
+              return `${dd}/${mm}/${yyyy}`;
+            }
 
-            if (!name && !room && !amount) {
+            console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
+              name, 
+              room, 
+              water_start, 
+              water_end, 
+              water_consumption, 
+              water_price, 
+              water_total, 
+              electricity_start, 
+              electricity_end, 
+              electricity_consumption, 
+              electricity_price, 
+              electricity_total, 
+              amount_total, 
+              amount_before_vat, 
+              vat, 
+              amount_total_net,
+            date_from,
+          date_to,
+          total_in_thai,
+        total_in_english });
+
+            if (!name && !room) {
                 console.log('⏭️ Пропускаем пустую строку');
                 continue;
             }
@@ -205,9 +255,25 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
                 invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                          .replace('{{room}}', room)
-                                         .replace('{{amount}}', amount)
+                                         .replace('{{water_start}}', water_start)
+                                         .replace('{{water_end}}', water_end)
+                                         .replace('{{water_consumption}}', water_consumption)
+                                         .replace('{{water_price}}', water_price)
+                                         .replace('{{water_total}}', water_total)
+                                         .replace('{{electricity_start}}', electricity_start)
+                                         .replace('{{electricity_end}}', electricity_end)
+                                         .replace('{{electricity_consumption}}', electricity_consumption)
+                                         .replace('{{electricity_price}}', electricity_price)
+                                         .replace('{{electricity_total}}', electricity_total)
+                                         .replace('{{amount_total}}', amount_total)
+                                         .replace('{{amount_before_vat}}', amount_before_vat)
+                                         .replace('{{vat}}', vat)
+                                         .replace('{{amount_total_net}}', amount_total_net)
+                                         .replace('{{date_from}}', date_from)
+                                         .replace('{{date_to}}', date_to)
+                                         .replace('{{total_in_thai}}', total_in_thai)
+                                         .replace('{{total_in_english}}', total_in_english)
                                          .replace('{{logo_base64}}', logoDataUri);
-;
 
                 // Создаем новую страницу
                 console.log('🆕 Создаем новую страницу...');

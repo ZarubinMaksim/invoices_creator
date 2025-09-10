@@ -196,12 +196,15 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
 
             try {
                 console.log('📄 Читаем HTML шаблон...');
+                const logoPath = path.join(__dirname, 'img/logo.png');
+                const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+                const logoDataUri = `data:image/png;base64,${logoBase64}`;
                 let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
-                const logoPath = 'file://' + path.join(__dirname, 'img/logo.png');
-                invoiceHtml = invoiceHtml.replace('img/logo.png', logoPath);    
                 invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                          .replace('{{room}}', room)
-                                         .replace('{{amount}}', amount);
+                                         .replace('{{amount}}', amount)
+                                         .replace('{{logo_base64}}', logoDataUri);
+;
 
                 // Создаем новую страницу
                 console.log('🆕 Создаем новую страницу...');

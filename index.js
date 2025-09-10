@@ -44,7 +44,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
 
     console.log('Файл загружен:', req.file.path);
     res.send(`Файл успешно загружен: ${req.file.filename}`);
-
+    res.send(`Файл успешно загружен: ${req.file.filename}`);
     const workbook = xlsx.readFile(req.file.path);
     const sheetIndex = workbook.SheetNames.length - 3;
     const sheetName = workbook.SheetNames[sheetIndex];

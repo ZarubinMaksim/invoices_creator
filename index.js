@@ -43,8 +43,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
     if (!req.file) return res.status(400).send('Файл не загружен');
 
     console.log('Файл загружен:', req.file.path);
-    res.send(`Файл успешно загружен: ${req.file.filename}`);
-    res.send(`Файл успешно загружен: ${req.file.filename}`);
+
     const workbook = xlsx.readFile(req.file.path);
     const sheetIndex = workbook.SheetNames.length - 3;
     const sheetName = workbook.SheetNames[sheetIndex];
@@ -61,6 +60,9 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), (req, res) => {
         console.log(`Here is owner data: name - ${name}, room: ${room}, amount: ${amount}`)
       }
   });
+  res.send(`Файл успешно загружен: ${req.file.filename}
+  Here is owner data: name - ${name}, room: ${room}, amount: ${amount}
+  `);
 });
 
 // Слушаем все внешние подключения

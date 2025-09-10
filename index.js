@@ -186,10 +186,10 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             console.log('ROW ROW ROW', row)
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
-            const water_start = row['Room no.'] || '';
-            const amount = 0
+            const water_start = row['Water Meter numbers'] || '';
+            const water_end = row[__EMPTY_2] || '';
 
-            console.log(`📊 Обрабатываем строку ${rowIndex}:`, { name, room, amount });
+            console.log(`📊 Обрабатываем строку ${rowIndex}:`, { name, room, water_start, water_end });
 
             if (!name && !room && !amount) {
                 console.log('⏭️ Пропускаем пустую строку');

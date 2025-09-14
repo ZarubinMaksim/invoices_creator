@@ -233,7 +233,6 @@ app.post("/upload", upload.single("excel"), async (req, res) => {
         .replace('{{total_in_english}}', total_in_english)
         .replace('{{qr_base64}}', qrDataUri)
         .replace('{{logo_base64}}', logoDataUri);
-        console.log('мы read html', invoiceHtml)
 
       // Генерация PDF через Puppeteer
       const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;

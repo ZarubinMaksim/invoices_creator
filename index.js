@@ -38,6 +38,8 @@ if (!fs.existsSync(pdfFolder)) {
 // Префикс маршрута
 const ROUTE_PREFIX = '/invoices';
 
+
+
 // Делаем папку доступной по URL
 app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
 

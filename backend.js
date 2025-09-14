@@ -37,10 +37,10 @@ if (!fs.existsSync(pdfFolder)) {
 }
 
 // Префикс маршрута
-const ROUTE_PREFIX = '/invoices';
+// const ROUTE_PREFIX = '/invoices';
 
 // Делаем папку доступной по URL
-app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
+app.use(`/pdf`, express.static(pdfFolder));
 
 // Папка для загрузки файлов
 const uploadFolder = path.join(__dirname, 'uploads');
@@ -160,7 +160,7 @@ function generateInvoiceNumber(counter, serial) {
   return `PS${yyyy}${mm}-${number}`;
 }
 
-app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
+app.post(`/upload`, upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
   
   if (!req.file) {
@@ -310,7 +310,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               
               console.log('✅ PDF успешно создан');
               await page.close();
-              const pdfUrl = `${ROUTE_PREFIX}/pdf/${pdfFileName}`;
+              const pdfUrl = `/pdf/${pdfFileName}`;
 
               successCount++;
               

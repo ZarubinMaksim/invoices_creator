@@ -6,6 +6,7 @@ const cors = require("cors");
 const xlsx = require('xlsx');
 const toThaiBahtText = require('thai-baht-text');
 const { toWords } = require('number-to-words');
+const archiver = require('archiver');
 const app = express();
 const PORT = 4000;
 const puppeteer = require("puppeteer");
@@ -359,6 +360,31 @@ process.on('SIGINT', async () => {
   }
   console.log('👋 Завершение работы');
   process.exit();
+});
+
+//all invoices ZIP
+app.get(`/download-all`, (req, res) => {
+  const zipName = `all_invoices_${Date.now()}.zip`;
+  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
+  res.setHeader('Content-Type', 'application/zip');
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  archive.on('error', err => {
+      console.error('❌ Ошибка архивации:', err);
+      res.status(500).send({ error: err.message });
+  });
+
+  // Прямо в поток ответа
+  archive.pipe(res);
+
+  // Добавляем все PDF из папки
+  fs.readdirSync(pdfFolder).forEach(file => {
+      const filePath = path.join(pdfFolder, file);
+      archive.file(filePath, { name: file });
+  });
+
+  archive.finalize();
 });
 
 

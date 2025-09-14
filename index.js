@@ -174,39 +174,35 @@ const transporter = nodemailer.createTransport({
 
 
 // API для отправки писем
-app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
+// API для отправки писем
+app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
   const rows = req.body.rows || [];
-  // Ответ сразу
-  res.json({ status: 'queued', count: rows.length });
+  const results = [];
 
-
-
-  // Рассылаем в фоне
-  setImmediate(async () => {
-    let success = 0, error = 0;
-    for (const row of rows) {
-      try {
-        await transporter.sendMail({
-          from: '"Invoices" <gsm@lagreenhotel.com>',
-          to: row.email,
-          subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
-          text: `Здравствуйте, ${row.name}! Во вложении вы найете ваш счет за коммунальные услуги по квартире ${row.room}.`,
-          attachments: [
-            {
-              filename: path.basename(row.pdf),
-              path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
-            }
-          ]
-        });
-        success++;
-      } catch (err) {
-        console.error('Ошибка отправки на', row.email, err);
-        error++;
-      }
+  for (const row of rows) {
+    try {
+      await transporter.sendMail({
+        from: '"Invoices" <gsm@lagreenhotel.com>',
+        to: row.email,
+        subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
+        text: `Здравствуйте, ${row.name}! Во вложении ваш счет.`,
+        attachments: [
+          {
+            filename: path.basename(row.pdf),
+            path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+          }
+        ]
+      });
+      results.push({ room: row.room, name: row.name, email: row.email, status: 'Отправлено' });
+    } catch (err) {
+      console.error('Ошибка отправки на', row.email, err);
+      results.push({ room: row.room, name: row.name, email: row.email, status: 'Ошибка' });
     }
-    console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
-  });
+  }
+
+  res.json({ results });
 });
+
 
 function getCurrentDate() {
   const today = new Date();
@@ -290,19 +286,37 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
           style="margin-top:20px; margin-left:20px; padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px;">
           Отправить выбранные счета на почту
         </button>
+
+        <h2>Результаты рассылки</h2>
+<table id="email-results" border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr style="background-color: #f2f2f2;">
+      <th>№</th>
+      <th>Комната</th>
+      <th>ФИО</th>
+      <th>Почта</th>
+      <th>Статус</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+
+        <div id="email-status" style="margin-top:20px; font-weight:bold;"></div>
         
         <script>
         let counter = 0;
+        
         function addPdfRow(room, name, email, water, electricity, total, status, pdfPath) {
           counter++;
-          const tbody = document.querySelector('#pdf-table tbody');
-          const row = document.createElement('tr');
+          var tbody = document.querySelector('#pdf-table tbody');
+          var row = document.createElement('tr');
         
-          let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
+          var statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
                            '; text-align:center; font-weight:bold;">' +
                            (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
         
-          let downloadCell = '';
+          var downloadCell = '';
           if (status === 'success') {
             downloadCell = '<td><a href="' + pdfPath + '" target="_blank" ' +
                            'style="display:inline-block; padding:5px 10px; background:#4CAF50; color:white; text-decoration:none; border-radius:5px;">Скачать</a></td>';
@@ -330,50 +344,62 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         }
         
         // выбрать все
-        document.addEventListener('change', e => {
+        document.addEventListener('change', function(e) {
           if (e.target.id === 'select-all') {
-            document.querySelectorAll('.email-checkbox').forEach(cb => cb.checked = e.target.checked);
+            var cbs = document.querySelectorAll('.email-checkbox');
+            for (var i=0; i<cbs.length; i++) cbs[i].checked = e.target.checked;
           }
         });
         
         // функция отправки писем
-        async function sendSelectedEmails() {
-          const selected = Array.from(document.querySelectorAll('.email-checkbox:checked'))
-            .map(cb => ({ 
-              email: cb.dataset.email, 
-              pdf: cb.dataset.pdf, 
+        function sendSelectedEmails() {
+          var selected = [];
+          var cbs = document.querySelectorAll('.email-checkbox:checked');
+          for (var i=0; i<cbs.length; i++) {
+            var cb = cbs[i];
+            selected.push({
+              email: cb.dataset.email,
+              pdf: cb.dataset.pdf,
               room: cb.dataset.room,
               name: cb.dataset.name
-            }));
+            });
+          }
         
           if (selected.length === 0) {
             alert('Нет выбранных строк!');
             return;
           }
         
-          try {
-            const response = await fetch('${ROUTE_PREFIX}/send-emails', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ rows: selected })
-            });
-        
-            if (!response.ok) {
-              const text = await response.text();
-              console.error('❌ Сервер вернул ошибку:', text);
-              alert('Ошибка сервера: ' + response.status);
-              return;
+          fetch('${ROUTE_PREFIX}/send-emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: selected })
+          }).then(function(resp) {
+            return resp.json();
+          }).then(function(result) {
+            // формируем таблицу с результатами
+            var tbody = document.querySelector('#email-results tbody');
+            tbody.innerHTML = '';
+            for (var i=0; i<result.rows.length; i++) {
+              var row = result.rows[i];
+              var tr = document.createElement('tr');
+              var color = row.status === 'success' ? 'green' : 'red';
+              var statusText = row.status === 'success' ? 'Отправлено' : 'Ошибка';
+              tr.innerHTML = '<td>' + (i+1) + '</td>' +
+                             '<td>' + row.room + '</td>' +
+                             '<td>' + row.name + '</td>' +
+                             '<td>' + row.email + '</td>' +
+                             '<td style="font-weight:bold; color:' + color + '">' + statusText + '</td>';
+              tbody.appendChild(tr);
             }
-        
-            const result = await response.json();
-            alert('Отправлено: ' + result.success + ', Ошибок: ' + result.error);
-          } catch (err) {
-            console.error('❌ Ошибка запроса:', err);
+            alert('Рассылка завершена!');
+          }).catch(function(err) {
+            console.error(err);
             alert('Ошибка при отправке: ' + err.message);
-          }
+          });
         }
-        
         </script>
+        
         `);
         
 

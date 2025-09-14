@@ -15,6 +15,117 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+console.log('🚀 Инициализация сервера...');
+
+// Убиваем все висящие процессы Chromium перед запуском
+console.log('🔄 Убиваем висящие процессы Chromium...');
+try {
+    execSync('pkill -f chromium', { stdio: 'ignore' });
+    console.log('✅ Процессы Chromium завершены');
+} catch (error) {
+    console.log('ℹ️ Не было процессов Chromium для завершения');
+}
+
+
+// Папка для сохранённых PDF
+const pdfFolder = path.join(__dirname, 'saved_pdf');
+if (!fs.existsSync(pdfFolder)) {
+    console.log('📁 Создаем папку для PDF:', pdfFolder);
+    fs.mkdirSync(pdfFolder, { recursive: true });
+} else {
+    console.log('📁 Папка для PDF уже существует:', pdfFolder);
+}
+
+// Префикс маршрута
+const ROUTE_PREFIX = '/invoices';
+
+// Делаем папку доступной по URL
+app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
+
+// Папка для загрузки файлов
+const uploadFolder = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadFolder)) {
+    console.log('📁 Создаем папку для загрузок:', uploadFolder);
+    fs.mkdirSync(uploadFolder, { recursive: true });
+} else {
+    console.log('📁 Папка для загрузок уже существует:', uploadFolder);
+}
+
+// Настройка multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      console.log('📂 Сохраняем файл в:', uploadFolder);
+      cb(null, uploadFolder);
+  },
+  filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      const name = path.basename(file.originalname, ext);
+      const filename = `${name}-${Date.now()}${ext}`;
+      console.log('📝 Новое имя файла:', filename);
+      cb(null, filename);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }
+});
+
+// Глобальная переменная для браузера
+let browserInstance = null;
+
+async function getBrowser() {
+  if (!browserInstance) {
+      console.log('🌐 Запускаем браузер...');
+      
+      const launchOptions = {
+          args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--single-process',
+              '--no-zygote',
+              '--disable-extensions',
+              '--disable-software-rasterizer',
+              '--disable-background-timer-throttling',
+              '--disable-backgrounding-occluded-windows',
+              '--disable-renderer-backgrounding'
+          ],
+          headless: 'new',
+          timeout: 120000,
+          executablePath: '/snap/chromium/current/usr/lib/chromium-browser/chrome'
+      };
+      
+      console.log('⚙️ Параметры запуска:', launchOptions);
+      
+      try {
+          browserInstance = await puppeteer.launch(launchOptions);
+          console.log('✅ Браузер успешно запущен');
+          
+          // Проверяем версию
+          const version = await browserInstance.version();
+          console.log('🌐 Версия браузера:', version);
+          
+      } catch (error) {
+          console.error('❌ Ошибка запуска браузера:', error);
+          
+          // Пробуем альтернативный путь
+          console.log('🔄 Пробуем альтернативный путь...');
+          launchOptions.executablePath = '/usr/bin/chromium-browser';
+          
+          try {
+              browserInstance = await puppeteer.launch(launchOptions);
+              console.log('✅ Браузер запущен с альтернативным путем');
+          } catch (retryError) {
+              console.error('❌ Ошибка при повторной попытке запуска:', retryError);
+              throw retryError;
+          }
+      }
+  }
+  
+  return browserInstance;
+}
+
 function getCurrentDate() {
   const today = new Date();
   const day = String(today.getDate()).padStart(2, '0');
@@ -49,106 +160,188 @@ function generateInvoiceNumber(counter, serial) {
   return `PS${yyyy}${mm}-${number}`;
 }
 
+app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
+  console.log('📤 Получен POST запрос на загрузку файла');
+  
+  if (!req.file) {
+      console.log('❌ Файл не загружен');
+      return res.status(400).send('Файл не загружен');
+  }
 
-// Проверка, что сервер жив
-app.get("/", (req, res) => {
-  res.send("✅ Сервер работает!");
-});
+  console.log('✅ Файл загружен:', req.file.filename);
 
-let browserInstance = null;
+  try {
+      console.log('📖 Читаем Excel файл...');
+      const workbook = xlsx.readFile(req.file.path);
+      console.log('✅ Файл прочитан успешно');
+      
+      const sheetIndex = workbook.SheetNames.length - 4;
+      const sheetName = workbook.SheetNames[sheetIndex];
+      console.log('📑 Выбран лист:', sheetName);
+      
+      const worksheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
+      
+      console.log('📈 Найдено строк:', data.length);
 
-// Функция для получения экземпляра браузера
-const getBrowser = async () => {
-    if (!browserInstance) {
-        console.log('🌐 Запускаем браузер...');
-        
-        const launchOptions = {
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--single-process',
-                '--no-zygote',
-                '--disable-extensions',
-                '--disable-software-rasterizer',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding'
-            ],
-            headless: 'new',
-            timeout: 120000,
-            executablePath: '/snap/chromium/current/usr/lib/chromium-browser/chrome'
-        };
-        
-        console.log('⚙️ Параметры запуска:', launchOptions);
-        
-        try {
-            browserInstance = await puppeteer.launch(launchOptions);
-            console.log('✅ Браузер успешно запущен');
-            
-            // Проверяем версию
-            const version = await browserInstance.version();
-            console.log('🌐 Версия браузера:', version);
-            
-        } catch (error) {
-            console.error('❌ Ошибка запуска браузера:', error);
-            
-            // Пробуем альтернативный путь
-            console.log('🔄 Пробуем альтернативный путь...');
-            launchOptions.executablePath = '/usr/bin/chromium-browser';
-            
-            try {
-                browserInstance = await puppeteer.launch(launchOptions);
-                console.log('✅ Браузер запущен с альтернативным путем');
-            } catch (retryError) {
-                console.error('❌ Ошибка при повторной попытке запуска:', retryError);
-                throw retryError;
-            }
-        }
-    }
     
-    return browserInstance;
-}
+      // Получаем браузер
+      console.log('🖥️ Получаем экземпляр браузера...');
+      const browser = await getBrowser();
+      console.log('✅ Браузер готов к работе');
+      
+      let successCount = 0;
+      let errorCount = 0;
+      let invoiceCount = 0
 
-// Папка для сохранённых PDF
-const pdfFolder = path.join(__dirname, 'saved_pdf');
-if (!fs.existsSync(pdfFolder)) {
-    console.log('📁 Создаем папку для PDF:', pdfFolder);
-    fs.mkdirSync(pdfFolder, { recursive: true });
-} else {
-    console.log('📁 Папка для PDF уже существует:', pdfFolder);
-}
+      for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+          invoiceCount += 1
+          const row = data[rowIndex];
+          const name = row['Guest name'] || '';
+          const room = row['Room no.'] || '';
+          //const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
+          //const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
+          const email = '89940028777@ya.ru'
+          const water_start = (parseFloat(row['Water Meter numbers']) || 0).toFixed(2);
+          const water_end = (parseFloat(row['__EMPTY_2']) || 0).toFixed(2);
+          const water_consumption = (parseFloat(row['Water consumption']) || 0).toFixed(2);
+          const water_price = 89;
+          const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
+          const electricity_start = (parseFloat(row['Electricity Meter numbers']) || 0).toFixed(2);
+          const electricity_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
+          const electricity_consumption = (parseFloat(row['Eletricity']) || 0).toFixed(2);
+          const electricity_price = 8;
+          const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
+          const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
+          const amount_before_vat = (parseFloat(row['Before amount']) || 0).toFixed(2);
+          const vat = (parseFloat(row['SVC']) || 0).toFixed(2);
+          const amount_total_net = (parseFloat(row['Total amount']) || 0).toFixed(2);
+          const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
+          const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
+          const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
+          const date_of_creating = getCurrentDate()
+          const total_in_thai = toThaiBahtText(amount_total_net)
+          const total_in_english = toWords(amount_total_net)
 
-// ----------------ЗАГРУЗКА ДОКУМЕНТА---------------------
 
-// Папка для загрузки файлов
-const uploadFolder = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadFolder)) {
-    console.log('📁 Создаем папку для загрузок:', uploadFolder);
-    fs.mkdirSync(uploadFolder, { recursive: true });
-} else {
-    console.log('📁 Папка для загрузок уже существует:', uploadFolder);
-}
 
-// Настройка multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      console.log('📂 Сохраняем файл в:', uploadFolder);
-      cb(null, uploadFolder);
-  },
-  filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      const name = path.basename(file.originalname, ext);
-      const filename = `${name}-${Date.now()}${ext}`;
-      console.log('📝 Новое имя файла:', filename);
-      cb(null, filename);
+          console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
+            name, 
+            room, 
+            water_start, 
+            water_end, 
+            water_consumption, 
+            water_price, 
+            water_total, 
+            electricity_start, 
+            electricity_end, 
+            electricity_consumption, 
+            electricity_price, 
+            electricity_total, 
+            amount_total, 
+            amount_before_vat, 
+            vat, 
+            amount_total_net,
+            invoice_number,
+          date_from,
+        date_to,
+        date_of_creating,
+        total_in_thai,
+      total_in_english });
+
+          if (!name && !room) {
+              console.log('⏭️ Пропускаем пустую строку');
+              continue;
+          }
+
+          try {
+              console.log('📄 Читаем HTML шаблон...');
+              const logoPath = path.join(__dirname, 'img/logo.png');
+              const qrPath = path.join(__dirname, 'img/qr.png');
+              const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+              const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+              const logoDataUri = `data:image/png;base64,${logoBase64}`;
+              const qrDataUri = `data:image/png;base64,${qrBase64}`;
+              let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+              invoiceHtml = invoiceHtml.replace('{{name}}', name)
+                                       .replace('{{room}}', room)
+                                       .replace('{{water_start}}', water_start)
+                                       .replace('{{water_end}}', water_end)
+                                       .replace('{{water_consumption}}', water_consumption)
+                                       .replace('{{water_price}}', water_price)
+                                       .replace('{{water_total}}', water_total)
+                                       .replace('{{electricity_start}}', electricity_start)
+                                       .replace('{{electricity_end}}', electricity_end)
+                                       .replace('{{electricity_consumption}}', electricity_consumption)
+                                       .replace('{{electricity_price}}', electricity_price)
+                                       .replace('{{electricity_total}}', electricity_total)
+                                       .replace('{{amount_total}}', amount_total)
+                                       .replace('{{amount_before_vat}}', amount_before_vat)
+                                       .replace('{{vat}}', vat)
+                                       .replace('{{amount_total_net}}', amount_total_net)
+                                       .replace('{{invoice_number}}', invoice_number)
+                                       .replace('{{date_from}}', date_from)
+                                       .replace('{{date_to}}', date_to)
+                                       .replace('{{date_of_creating}}', date_of_creating)
+                                       .replace('{{total_in_thai}}', total_in_thai)
+                                       .replace('{{total_in_english}}', total_in_english)
+                                       .replace('{{qr_base64}}', qrDataUri)
+                                       .replace('{{logo_base64}}', logoDataUri);
+
+              // Создаем новую страницу
+              console.log('🆕 Создаем новую страницу...');
+              const page = await browser.newPage();
+              
+              console.log('🔄 Устанавливаем контент...');
+              await page.setContent(invoiceHtml, { 
+                  waitUntil: 'networkidle0',
+                  timeout: 30000
+              });
+              const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
+              const pdfPath = path.join(pdfFolder, pdfFileName);
+              console.log('🖨️ Генерируем PDF:', pdfPath);
+              
+              await page.pdf({ 
+                  path: pdfPath, 
+                  format: 'A4', 
+                  printBackground: true,
+                  timeout: 30000
+              });
+              
+              console.log('✅ PDF успешно создан');
+              await page.close();
+              const pdfUrl = `${ROUTE_PREFIX}/pdf/${pdfFileName}`;
+
+              successCount++;
+              
+          } catch (error) {
+              console.error('❌ Ошибка:', error);
+              errorCount++;
+            }
+      }
+
+      console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
+
+  } catch (error) {
+      console.error('❌ Критическая ошибка:', error);
+      res.status(500).send('Ошибка: ' + error.message);
   }
 });
-const upload = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }
+
+// Обработка завершения приложения
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Получен сигнал SIGINT, завершаем работу...');
+  if (browserInstance) {
+      console.log('❌ Закрываем браузер...');
+      await browserInstance.close();
+      console.log('✅ Браузер закрыт');
+  }
+  console.log('👋 Завершение работы');
+  process.exit();
 });
+
+
+// ----------------ЗАГРУЗКА ДОКУМЕНТА---------------------
 
 // app.post("/upload", upload.single("excel"), async (req, res) => {
 //   if (!req.file) return res.status(400).send({ message: "Файл не загружен" });
@@ -473,110 +666,7 @@ const upload = multer({
 //   }
 // });
 
-app.post(`/upload`, upload.single('excel'), async (req, res) => {
-  console.log('📤 Получен POST запрос на загрузку файла');
 
-  if (!req.file) {
-      console.log('❌ Файл не загружен');
-      return res.status(400).json({ error: 'Файл не загружен' });
-  }
-
-  console.log('✅ Файл загружен:', req.file.filename);
-
-  try {
-      const workbook = xlsx.readFile(req.file.path);
-      const sheetIndex = workbook.SheetNames.length - 4;
-      const sheetName = workbook.SheetNames[sheetIndex];
-      const worksheet = workbook.Sheets[sheetName];
-      const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-
-      console.log('📈 Найдено строк:', data.length);
-
-      const browser = await getBrowser();
-      console.log('🖥️ Браузер готов');
-
-      let results = [];
-      let invoiceCount = 0;
-
-      for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
-          invoiceCount++;
-          const row = data[rowIndex];
-          const name = row['Guest name'] || '';
-          const room = row['Room no.'] || '';
-          const email = '89940028777@ya.ru';
-          const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
-          const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
-          const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
-          const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']);
-          const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
-          const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
-          const date_of_creating = getCurrentDate();
-          const total_in_thai = toThaiBahtText(amount_total);
-          const total_in_english = toWords(amount_total);
-
-          if (!name && !room) continue;
-
-          try {
-              const logoBase64 = fs.readFileSync(path.join(__dirname, 'img/logo.png')).toString('base64');
-              const qrBase64 = fs.readFileSync(path.join(__dirname, 'img/qr.png')).toString('base64');
-
-              let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
-              invoiceHtml = invoiceHtml.replace('{{name}}', name)
-                                       .replace('{{room}}', room)
-                                       .replace('{{water_total}}', water_total)
-                                       .replace('{{electricity_total}}', electricity_total)
-                                       .replace('{{amount_total}}', amount_total)
-                                       .replace('{{invoice_number}}', invoice_number)
-                                       .replace('{{date_from}}', date_from)
-                                       .replace('{{date_to}}', date_to)
-                                       .replace('{{date_of_creating}}', date_of_creating)
-                                       .replace('{{total_in_thai}}', total_in_thai)
-                                       .replace('{{total_in_english}}', total_in_english)
-                                       .replace('{{qr_base64}}', qrBase64)
-                                       .replace('{{logo_base64}}', logoBase64);
-
-              const page = await browser.newPage();
-              await page.setContent(invoiceHtml, { waitUntil: 'networkidle2', timeout: 30000 });
-
-              const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
-              const pdfPath = path.join(pdfFolder, pdfFileName);
-              await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, timeout: 30000 });
-              await page.close();
-
-              results.push({
-                  room,
-                  name,
-                  email,
-                  water_total,
-                  electricity_total,
-                  amount_total,
-                  status: 'success',
-                  pdfUrl: `/pdf/${pdfFileName}`
-              });
-
-          } catch (err) {
-              console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
-              results.push({
-                  room,
-                  name,
-                  email,
-                  water_total,
-                  electricity_total,
-                  amount_total,
-                  status: 'error',
-                  pdfUrl: null
-              });
-          }
-      }
-
-      res.json({ results });
-      console.log('✅ Генерация PDF завершена');
-
-  } catch (error) {
-      console.error('❌ Критическая ошибка:', error);
-      res.status(500).json({ error: error.message });
-  }
-});
 
 
 //-------------------------------------------------------------

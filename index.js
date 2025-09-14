@@ -9,6 +9,7 @@ const puppeteer = require('puppeteer');
 const { execSync } = require('child_process');
 const toThaiBahtText = require('thai-baht-text');
 const { toWords } = require('number-to-words');
+const archiver = require('archiver');
 
 console.log('🚀 Инициализация сервера...');
 
@@ -135,6 +136,31 @@ app.get(`${ROUTE_PREFIX}/`, (req, res) => {
     `);
 });
 
+// Маршрут для скачивания всех PDF в ZIP
+app.get(`${ROUTE_PREFIX}/download-all`, (req, res) => {
+  const zipName = `all_invoices_${Date.now()}.zip`;
+  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
+  res.setHeader('Content-Type', 'application/zip');
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  archive.on('error', err => {
+      console.error('❌ Ошибка архивации:', err);
+      res.status(500).send({ error: err.message });
+  });
+
+  // Прямо в поток ответа
+  archive.pipe(res);
+
+  // Добавляем все PDF из папки
+  fs.readdirSync(pdfFolder).forEach(file => {
+      const filePath = path.join(pdfFolder, file);
+      archive.file(filePath, { name: file });
+  });
+
+  archive.finalize();
+});
+
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
     console.log('📤 Получен POST запрос на загрузку файла');
@@ -219,6 +245,10 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         }
       </script>
              
+      <button onclick="window.location.href='${ROUTE_PREFIX}/download-all'" 
+        style="margin-top:20px; padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px;">
+  Скачать все счета ZIP
+</button>
         `);
 
         // Получаем браузер

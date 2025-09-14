@@ -141,146 +141,135 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 }
 });
 
-app.post("/upload", upload.single("excel"), async(req, res) => {
-  if (!req.file) return res.status(400).send("Файл не загружен");
+app.post("/upload", upload.single("excel"), async (req, res) => {
+  if (!req.file) return res.status(400).send({ message: "Файл не загружен" });
 
   console.log('📖 Читаем Excel файл...', req.file.path);
   const workbook = xlsx.readFile(req.file.path);
-  console.log('✅ Файл прочитан успешно');
   const sheetName = workbook.SheetNames[workbook.SheetNames.length - 4];
   console.log('📑 Выбран лист:', sheetName);
   const worksheet = workbook.Sheets[sheetName];
   const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
   console.log('📈 Найдено строк:', data.length);
 
-  let results = []; 
-  
+  let results = [];
+  let invoiceCount = 0;
+
+  const pdfFolder = path.join(__dirname, 'pdf');
+  if (!fs.existsSync(pdfFolder)) fs.mkdirSync(pdfFolder);
+
   console.log('🖥️ Получаем экземпляр браузера...');
-  // const browser = await getBrowser();
+  const browser = await getBrowser(); // Если Puppeteer нужен
   console.log('✅ Браузер готов к работе');
-  
+
   for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
-    invoiceCount += 1
+    invoiceCount++;
     const row = data[rowIndex];
     const name = row['Guest name'] || '';
     const room = row['Room no.'] || '';
-    //const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
-    //const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
-    const email = '89940028777@ya.ru'
+    if (!name && !room) continue;
+
+    const email = '89940028777@ya.ru'; // пока заглушка
+
+    // Все твои поля
     const water_start = (parseFloat(row['Water Meter numbers']) || 0).toFixed(2);
     const water_end = (parseFloat(row['__EMPTY_2']) || 0).toFixed(2);
     const water_consumption = (parseFloat(row['Water consumption']) || 0).toFixed(2);
     const water_price = 89;
     const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
+
     const electricity_start = (parseFloat(row['Electricity Meter numbers']) || 0).toFixed(2);
     const electricity_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
     const electricity_consumption = (parseFloat(row['Eletricity']) || 0).toFixed(2);
     const electricity_price = 8;
     const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
+
     const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
     const amount_before_vat = (parseFloat(row['Before amount']) || 0).toFixed(2);
     const vat = (parseFloat(row['SVC']) || 0).toFixed(2);
     const amount_total_net = (parseFloat(row['Total amount']) || 0).toFixed(2);
-    const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
+
+    const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']);
     const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
     const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
-    const date_of_creating = getCurrentDate()
-    const total_in_thai = toThaiBahtText(amount_total_net)
-    const total_in_english = toWords(amount_total_net)
-
-    console.log(`📊 Обрабатываем строку ${rowIndex}:`);
-
-    if (!name && !room) {
-        console.log('⏭️ Пропускаем пустую строку');
-        continue;
-    }
+    const date_of_creating = getCurrentDate();
+    const total_in_thai = toThaiBahtText(amount_total_net);
+    const total_in_english = toWords(amount_total_net);
 
     try {
-        console.log('📄 Читаем HTML шаблон...');
-        const logoPath = path.join(__dirname, 'img/logo.png');
-        const qrPath = path.join(__dirname, 'img/qr.png');
-        const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-        const qrBase64 = fs.readFileSync(qrPath).toString('base64');
-        const logoDataUri = `data:image/png;base64,${logoBase64}`;
-        const qrDataUri = `data:image/png;base64,${qrBase64}`;
-        let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
-        invoiceHtml = invoiceHtml.replace('{{name}}', name)
-                                 .replace('{{room}}', room)
-                                 .replace('{{water_start}}', water_start)
-                                 .replace('{{water_end}}', water_end)
-                                 .replace('{{water_consumption}}', water_consumption)
-                                 .replace('{{water_price}}', water_price)
-                                 .replace('{{water_total}}', water_total)
-                                 .replace('{{electricity_start}}', electricity_start)
-                                 .replace('{{electricity_end}}', electricity_end)
-                                 .replace('{{electricity_consumption}}', electricity_consumption)
-                                 .replace('{{electricity_price}}', electricity_price)
-                                 .replace('{{electricity_total}}', electricity_total)
-                                 .replace('{{amount_total}}', amount_total)
-                                 .replace('{{amount_before_vat}}', amount_before_vat)
-                                 .replace('{{vat}}', vat)
-                                 .replace('{{amount_total_net}}', amount_total_net)
-                                 .replace('{{invoice_number}}', invoice_number)
-                                 .replace('{{date_from}}', date_from)
-                                 .replace('{{date_to}}', date_to)
-                                 .replace('{{date_of_creating}}', date_of_creating)
-                                 .replace('{{total_in_thai}}', total_in_thai)
-                                 .replace('{{total_in_english}}', total_in_english)
-                                 .replace('{{qr_base64}}', qrDataUri)
-                                 .replace('{{logo_base64}}', logoDataUri);
+      // Читаем HTML шаблон
+      const logoPath = path.join(__dirname, 'img/logo.png');
+      const qrPath = path.join(__dirname, 'img/qr.png');
+      const logoDataUri = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
+      const qrDataUri = `data:image/png;base64,${fs.readFileSync(qrPath).toString('base64')}`;
 
-        // Создаем новую страницу
-        console.log('🆕 Создаем новую страницу...');
-        const page = await browser.newPage();
-        
-        console.log('🔄 Устанавливаем контент...');
-        await page.setContent(invoiceHtml, { 
-            waitUntil: 'networkidle0',
-            timeout: 30000
-        });
-        const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
-        const pdfPath = path.join(pdfFolder, pdfFileName);
-        console.log('🖨️ Генерируем PDF:', pdfPath);
-        
-        await page.pdf({ 
-            path: pdfPath, 
-            format: 'A4', 
-            printBackground: true,
-            timeout: 30000
-        });
-        
-        console.log('✅ PDF успешно создан');
-        await page.close();
-        const pdfUrl = `${ROUTE_PREFIX}/pdf/${pdfFileName}`;
+      let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+      invoiceHtml = invoiceHtml
+        .replace('{{name}}', name)
+        .replace('{{room}}', room)
+        .replace('{{water_start}}', water_start)
+        .replace('{{water_end}}', water_end)
+        .replace('{{water_consumption}}', water_consumption)
+        .replace('{{water_price}}', water_price)
+        .replace('{{water_total}}', water_total)
+        .replace('{{electricity_start}}', electricity_start)
+        .replace('{{electricity_end}}', electricity_end)
+        .replace('{{electricity_consumption}}', electricity_consumption)
+        .replace('{{electricity_price}}', electricity_price)
+        .replace('{{electricity_total}}', electricity_total)
+        .replace('{{amount_total}}', amount_total)
+        .replace('{{amount_before_vat}}', amount_before_vat)
+        .replace('{{vat}}', vat)
+        .replace('{{amount_total_net}}', amount_total_net)
+        .replace('{{invoice_number}}', invoice_number)
+        .replace('{{date_from}}', date_from)
+        .replace('{{date_to}}', date_to)
+        .replace('{{date_of_creating}}', date_of_creating)
+        .replace('{{total_in_thai}}', total_in_thai)
+        .replace('{{total_in_english}}', total_in_english)
+        .replace('{{qr_base64}}', qrDataUri)
+        .replace('{{logo_base64}}', logoDataUri);
 
-        res.write(`<script>addPdfRow("${room}", "${name}", "${email}", "${water_total}", "${electricity_total}", "${amount_total}", "success", "${pdfUrl}");</script>`);
-        successCount++;
-        
+      // Генерация PDF через Puppeteer
+      const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
+      const pdfPath = path.join(pdfFolder, pdfFileName);
+
+      const page = await browser.newPage();
+      await page.setContent(invoiceHtml, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, timeout: 30000 });
+      await page.close();
+
+      results.push({
+        rowIndex,
+        room,
+        name,
+        email,
+        water_total,
+        electricity_total,
+        amount_total,
+        status: 'success',
+        pdfUrl: `/pdf/${pdfFileName}`
+      });
+
     } catch (error) {
-        console.error('❌ Ошибка:', error);
-        errorCount++;
-        res.write(`<script>addPdfRow("${room}", "${name}", "${email}", "${water_total}", "${electricity_total}", "${amount_total}", "error", "");</script>`);
-      }
-}
-
-
-
-
-  try {
-
-
-    let successCount = 0;
-    let errorCount = 0;
-    let invoiceCount = 0
-
-  res.send({ message: "Файл успешно загружен!", filename: req.file.filename });
-
-  } catch {
-
+      console.error(`❌ Ошибка для строки ${rowIndex}:`, error);
+      results.push({
+        rowIndex,
+        room,
+        name,
+        email,
+        water_total,
+        electricity_total,
+        amount_total,
+        status: 'error',
+        pdfUrl: ''
+      });
+    }
   }
 
-
+  res.send({ message: "Обработка завершена", total: data.length, results });
 });
+
 //-------------------------------------------------------------
 
 

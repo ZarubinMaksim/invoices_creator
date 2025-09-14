@@ -30,6 +30,9 @@ if (!fs.existsSync(pdfFolder)) {
     console.log('📁 Папка для PDF уже существует:', pdfFolder);
 }
 
+// Делаем папку доступной по URL
+app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
+
 // Префикс маршрута
 const ROUTE_PREFIX = '/invoices';
 
@@ -171,34 +174,49 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               <th>Имя</th>
               <th>Вода</th>
               <th>Свет</th>
+              <th>Всего</th>
               <th>Счёт</th>
+              <th>Скачать</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
         
         <script>
-          let counter = 0;
-          function addPdfRow(room, name, water, electricity, status) {
-            counter++;
-            const tbody = document.querySelector('#pdf-table tbody');
-            const row = document.createElement('tr');
-        
-            // Статус
-            let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') + '; text-align:center; font-weight:bold;">' 
-                             + (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
-        
-            row.innerHTML = '<td>' + counter + '</td>' +
-                            '<td>' + room + '</td>' +
-                            '<td>' + name + '</td>' +
-                            '<td>' + water + '</td>' +
-                            '<td>' + electricity + '</td>' +
-                            statusCell;
-        
-            tbody.appendChild(row);
-            window.scrollTo(0, document.body.scrollHeight);
+        let counter = 0;
+        function addPdfRow(room, name, water, electricity, total, status, pdfPath) {
+          counter++;
+          const tbody = document.querySelector('#pdf-table tbody');
+          const row = document.createElement('tr');
+      
+          // Статус
+          let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
+                           '; text-align:center; font-weight:bold;">' +
+                           (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
+      
+          // Кнопка "Скачать"
+          let downloadCell = '';
+          if (status === 'success') {
+            downloadCell = '<td><a href="' + pdfPath + '" target="_blank" ' +
+                           'style="display:inline-block; padding:5px 10px; background:#4CAF50; color:white; text-decoration:none; border-radius:5px;">Скачать</a></td>';
+          } else {
+            downloadCell = '<td>-</td>';
           }
-        </script>        
+      
+          row.innerHTML = '<td>' + counter + '</td>' +
+                          '<td>' + room + '</td>' +
+                          '<td>' + name + '</td>' +
+                          '<td>' + water + '</td>' +
+                          '<td>' + electricity + '</td>' +
+                          '<td>' + total + '</td>' +
+                          statusCell +
+                          downloadCell;
+      
+          tbody.appendChild(row);
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      </script>
+             
         `);
 
         // Получаем браузер
@@ -313,8 +331,8 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                     waitUntil: 'networkidle0',
                     timeout: 30000
                 });
-
-                const pdfPath = path.join(pdfFolder, `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`);
+                const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
+                const pdfPath = path.join(pdfFolder, pdfFileName);
                 console.log('🖨️ Генерируем PDF:', pdfPath);
                 
                 await page.pdf({ 
@@ -326,14 +344,15 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 
                 console.log('✅ PDF успешно создан');
                 await page.close();
-                
-                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "success");</script>`);
+                const pdfUrl = `${ROUTE_PREFIX}/pdf/${pdfFileName}`;
+
+                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "${amount_total}", "success", "${pdfUrl}");</script>`);
                 successCount++;
                 
             } catch (error) {
                 console.error('❌ Ошибка:', error);
                 errorCount++;
-                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "error");</script>`);
+                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "${amount_total}", "error", "");</script>`);
               }
         }
 

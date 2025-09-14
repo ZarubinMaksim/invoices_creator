@@ -288,7 +288,7 @@ const upload = multer({
 //   res.send({ message: "Обработка завершена", total: data.length, results });
 // });
 
-app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
+app.post('/upload', upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
   
   if (!req.file) {

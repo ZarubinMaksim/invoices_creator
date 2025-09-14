@@ -11,6 +11,7 @@ const toThaiBahtText = require('thai-baht-text');
 const { toWords } = require('number-to-words');
 const archiver = require('archiver');
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 console.log('🚀 Инициализация сервера...');
 
@@ -166,8 +167,8 @@ app.get(`${ROUTE_PREFIX}/download-all`, (req, res) => {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-      user: 'gsm@lagreenhotel.com',
-      pass: 'ljczjhrcszalpuwz'  // не обычный пароль, а пароль приложения Google
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
   }
 });
 

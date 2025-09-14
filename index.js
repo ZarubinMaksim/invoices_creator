@@ -161,18 +161,44 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         });
         
         res.write(`
-            <h1>Файл успешно загружен: ${req.file.filename}</h1>
-            <h2>Создание PDF:</h2>
-            <ul id="pdf-list"></ul>
-            <script>
-                function addPdfItem(text) {
-                    const list = document.getElementById('pdf-list');
-                    const item = document.createElement('li');
-                    item.textContent = text;
-                    list.appendChild(item);
-                    window.scrollTo(0, document.body.scrollHeight);
-                }
-            </script>
+        <h1>Файл успешно загружен: ${req.file.filename}</h1>
+        <h2>Создание PDF:</h2>
+        <table id="pdf-table" border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; width: 100%;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>№</th>
+              <th>Комната</th>
+              <th>Имя</th>
+              <th>Вода</th>
+              <th>Свет</th>
+              <th>Счёт</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        
+        <script>
+          let counter = 0;
+          function addPdfRow(room, name, water, electricity, status) {
+            counter++;
+            const tbody = document.querySelector('#pdf-table tbody');
+            const row = document.createElement('tr');
+        
+            // Статус
+            let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') + '; text-align:center; font-weight:bold;">' 
+                             + (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
+        
+            row.innerHTML = '<td>' + counter + '</td>' +
+                            '<td>' + room + '</td>' +
+                            '<td>' + name + '</td>' +
+                            '<td>' + water + '</td>' +
+                            '<td>' + electricity + '</td>' +
+                            statusCell;
+        
+            tbody.appendChild(row);
+            window.scrollTo(0, document.body.scrollHeight);
+          }
+        </script>        
         `);
 
         // Получаем браузер
@@ -301,14 +327,14 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 console.log('✅ PDF успешно создан');
                 await page.close();
                 
-                res.write(`<script>addPdfItem("${name} - ${room} - ${pdfPath}");</script>`);
+                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "success");</script>`);
                 successCount++;
                 
             } catch (error) {
                 console.error('❌ Ошибка:', error);
                 errorCount++;
-                res.write(`<script>addPdfItem("ОШИБКА: ${name} - ${room}");</script>`);
-            }
+                res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "error");</script>`);
+              }
         }
 
         res.write(`<h3>Генерация завершена! Успешно: ${successCount}, Ошибок: ${errorCount}</h3>`);

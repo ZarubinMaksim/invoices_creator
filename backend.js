@@ -297,181 +297,287 @@ const upload = multer({
 //   res.send({ message: "Обработка завершена", total: data.length, results });
 // });
 
-app.post('/upload', upload.single('excel'), async (req, res) => {
-  console.log('📤 Получен POST запрос на загрузку файла');
+// app.post('/upload', upload.single('excel'), async (req, res) => {
+//   console.log('📤 Получен POST запрос на загрузку файла');
   
+//   if (!req.file) {
+//       console.log('❌ Файл не загружен');
+//       return res.status(400).send('Файл не загружен');
+//   }
+
+//   console.log('✅ Файл загружен:', req.file.filename);
+
+//   try {
+//       console.log('📖 Читаем Excel файл...');
+//       const workbook = xlsx.readFile(req.file.path);
+//       console.log('✅ Файл прочитан успешно');
+      
+//       const sheetIndex = workbook.SheetNames.length - 4;
+//       const sheetName = workbook.SheetNames[sheetIndex];
+//       console.log('📑 Выбран лист:', sheetName);
+      
+//       const worksheet = workbook.Sheets[sheetName];
+//       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
+//       let result = []
+//       console.log('📈 Найдено строк:', data.length);
+      
+//       // Получаем браузер
+//       console.log('🖥️ Получаем экземпляр браузера...');
+//       const browser = await getBrowser();
+//       console.log('✅ Браузер готов к работе');
+      
+//       let successCount = 0;
+//       let errorCount = 0;
+//       let invoiceCount = 0
+
+//       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+//           invoiceCount += 1
+//           const row = data[rowIndex];
+//           const name = row['Guest name'] || '';
+//           const room = row['Room no.'] || '';
+//           //const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
+//           //const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
+//           const email = '89940028777@ya.ru'
+//           const water_start = (parseFloat(row['Water Meter numbers']) || 0).toFixed(2);
+//           const water_end = (parseFloat(row['__EMPTY_2']) || 0).toFixed(2);
+//           const water_consumption = (parseFloat(row['Water consumption']) || 0).toFixed(2);
+//           const water_price = 89;
+//           const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
+//           const electricity_start = (parseFloat(row['Electricity Meter numbers']) || 0).toFixed(2);
+//           const electricity_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
+//           const electricity_consumption = (parseFloat(row['Eletricity']) || 0).toFixed(2);
+//           const electricity_price = 8;
+//           const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
+//           const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
+//           const amount_before_vat = (parseFloat(row['Before amount']) || 0).toFixed(2);
+//           const vat = (parseFloat(row['SVC']) || 0).toFixed(2);
+//           const amount_total_net = (parseFloat(row['Total amount']) || 0).toFixed(2);
+//           const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
+//           const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
+//           const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
+//           const date_of_creating = getCurrentDate()
+//           const total_in_thai = toThaiBahtText(amount_total_net)
+//           const total_in_english = toWords(amount_total_net)
+
+
+
+//           console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
+//             name, 
+//             room, 
+//             water_start, 
+//             water_end, 
+//             water_consumption, 
+//             water_price, 
+//             water_total, 
+//             electricity_start, 
+//             electricity_end, 
+//             electricity_consumption, 
+//             electricity_price, 
+//             electricity_total, 
+//             amount_total, 
+//             amount_before_vat, 
+//             vat, 
+//             amount_total_net,
+//             invoice_number,
+//           date_from,
+//         date_to,
+//         date_of_creating,
+//         total_in_thai,
+//       total_in_english });
+
+//           if (!name && !room) {
+//               console.log('⏭️ Пропускаем пустую строку');
+//               continue;
+//           }
+
+//           try {
+//               console.log('📄 Читаем HTML шаблон...');
+//               const logoPath = path.join(__dirname, 'img/logo.png');
+//               const qrPath = path.join(__dirname, 'img/qr.png');
+//               const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+//               const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+//               const logoDataUri = `data:image/png;base64,${logoBase64}`;
+//               const qrDataUri = `data:image/png;base64,${qrBase64}`;
+//               let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+//               invoiceHtml = invoiceHtml.replace('{{name}}', name)
+//                                        .replace('{{room}}', room)
+//                                        .replace('{{water_start}}', water_start)
+//                                        .replace('{{water_end}}', water_end)
+//                                        .replace('{{water_consumption}}', water_consumption)
+//                                        .replace('{{water_price}}', water_price)
+//                                        .replace('{{water_total}}', water_total)
+//                                        .replace('{{electricity_start}}', electricity_start)
+//                                        .replace('{{electricity_end}}', electricity_end)
+//                                        .replace('{{electricity_consumption}}', electricity_consumption)
+//                                        .replace('{{electricity_price}}', electricity_price)
+//                                        .replace('{{electricity_total}}', electricity_total)
+//                                        .replace('{{amount_total}}', amount_total)
+//                                        .replace('{{amount_before_vat}}', amount_before_vat)
+//                                        .replace('{{vat}}', vat)
+//                                        .replace('{{amount_total_net}}', amount_total_net)
+//                                        .replace('{{invoice_number}}', invoice_number)
+//                                        .replace('{{date_from}}', date_from)
+//                                        .replace('{{date_to}}', date_to)
+//                                        .replace('{{date_of_creating}}', date_of_creating)
+//                                        .replace('{{total_in_thai}}', total_in_thai)
+//                                        .replace('{{total_in_english}}', total_in_english)
+//                                        .replace('{{qr_base64}}', qrDataUri)
+//                                        .replace('{{logo_base64}}', logoDataUri);
+
+//               // Создаем новую страницу
+//               console.log('🆕 Создаем новую страницу...');
+//               const page = await browser.newPage();
+              
+//               console.log('🔄 Устанавливаем контент...');
+//               await page.setContent(invoiceHtml, { 
+//                   waitUntil: 'networkidle0',
+//                   timeout: 30000
+//               });
+//               const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
+//               const pdfPath = path.join(pdfFolder, pdfFileName);
+//               console.log('🖨️ Генерируем PDF:', pdfPath);
+              
+//               await page.pdf({ 
+//                   path: pdfPath, 
+//                   format: 'A4', 
+//                   printBackground: true,
+//                   timeout: 30000
+//               });
+              
+//               console.log('✅ PDF успешно создан');
+//               await page.close();
+//               const pdfUrl = `/pdf/${pdfFileName}`;
+//               results.push({
+//                 rowIndex,
+//                 room,
+//                 name,
+//                 email,
+//                 water_total,
+//                 electricity_total,
+//                 amount_total,
+//                 status: 'success',
+//                 pdfUrl: pdfUrl
+//               });
+//               successCount++;
+              
+//           } catch (error) {
+//               console.error('❌ Ошибка:', error);
+//               errorCount++;
+//             }
+//       }
+//       console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
+
+//   } catch (error) {
+//       console.error('❌ Критическая ошибка:', error);
+//       res.status(500).send('Ошибка: ' + error.message);
+//   }
+// });
+
+app.post(`/upload`, upload.single('excel'), async (req, res) => {
+  console.log('📤 Получен POST запрос на загрузку файла');
+
   if (!req.file) {
       console.log('❌ Файл не загружен');
-      return res.status(400).send('Файл не загружен');
+      return res.status(400).json({ error: 'Файл не загружен' });
   }
 
   console.log('✅ Файл загружен:', req.file.filename);
 
   try {
-      console.log('📖 Читаем Excel файл...');
       const workbook = xlsx.readFile(req.file.path);
-      console.log('✅ Файл прочитан успешно');
-      
       const sheetIndex = workbook.SheetNames.length - 4;
       const sheetName = workbook.SheetNames[sheetIndex];
-      console.log('📑 Выбран лист:', sheetName);
-      
       const worksheet = workbook.Sheets[sheetName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-      let result = []
+
       console.log('📈 Найдено строк:', data.length);
-      
-      // Получаем браузер
-      console.log('🖥️ Получаем экземпляр браузера...');
+
       const browser = await getBrowser();
-      console.log('✅ Браузер готов к работе');
-      
-      let successCount = 0;
-      let errorCount = 0;
-      let invoiceCount = 0
+      console.log('🖥️ Браузер готов');
+
+      let results = [];
+      let invoiceCount = 0;
 
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
-          invoiceCount += 1
+          invoiceCount++;
           const row = data[rowIndex];
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
-          //const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
-          //const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
-          const email = '89940028777@ya.ru'
-          const water_start = (parseFloat(row['Water Meter numbers']) || 0).toFixed(2);
-          const water_end = (parseFloat(row['__EMPTY_2']) || 0).toFixed(2);
-          const water_consumption = (parseFloat(row['Water consumption']) || 0).toFixed(2);
-          const water_price = 89;
+          const email = '89940028777@ya.ru';
           const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
-          const electricity_start = (parseFloat(row['Electricity Meter numbers']) || 0).toFixed(2);
-          const electricity_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
-          const electricity_consumption = (parseFloat(row['Eletricity']) || 0).toFixed(2);
-          const electricity_price = 8;
           const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
           const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
-          const amount_before_vat = (parseFloat(row['Before amount']) || 0).toFixed(2);
-          const vat = (parseFloat(row['SVC']) || 0).toFixed(2);
-          const amount_total_net = (parseFloat(row['Total amount']) || 0).toFixed(2);
-          const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
+          const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']);
           const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
           const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
-          const date_of_creating = getCurrentDate()
-          const total_in_thai = toThaiBahtText(amount_total_net)
-          const total_in_english = toWords(amount_total_net)
+          const date_of_creating = getCurrentDate();
+          const total_in_thai = toThaiBahtText(amount_total);
+          const total_in_english = toWords(amount_total);
 
-
-
-          console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
-            name, 
-            room, 
-            water_start, 
-            water_end, 
-            water_consumption, 
-            water_price, 
-            water_total, 
-            electricity_start, 
-            electricity_end, 
-            electricity_consumption, 
-            electricity_price, 
-            electricity_total, 
-            amount_total, 
-            amount_before_vat, 
-            vat, 
-            amount_total_net,
-            invoice_number,
-          date_from,
-        date_to,
-        date_of_creating,
-        total_in_thai,
-      total_in_english });
-
-          if (!name && !room) {
-              console.log('⏭️ Пропускаем пустую строку');
-              continue;
-          }
+          if (!name && !room) continue;
 
           try {
-              console.log('📄 Читаем HTML шаблон...');
-              const logoPath = path.join(__dirname, 'img/logo.png');
-              const qrPath = path.join(__dirname, 'img/qr.png');
-              const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-              const qrBase64 = fs.readFileSync(qrPath).toString('base64');
-              const logoDataUri = `data:image/png;base64,${logoBase64}`;
-              const qrDataUri = `data:image/png;base64,${qrBase64}`;
+              const logoBase64 = fs.readFileSync(path.join(__dirname, 'img/logo.png')).toString('base64');
+              const qrBase64 = fs.readFileSync(path.join(__dirname, 'img/qr.png')).toString('base64');
+
               let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
               invoiceHtml = invoiceHtml.replace('{{name}}', name)
                                        .replace('{{room}}', room)
-                                       .replace('{{water_start}}', water_start)
-                                       .replace('{{water_end}}', water_end)
-                                       .replace('{{water_consumption}}', water_consumption)
-                                       .replace('{{water_price}}', water_price)
                                        .replace('{{water_total}}', water_total)
-                                       .replace('{{electricity_start}}', electricity_start)
-                                       .replace('{{electricity_end}}', electricity_end)
-                                       .replace('{{electricity_consumption}}', electricity_consumption)
-                                       .replace('{{electricity_price}}', electricity_price)
                                        .replace('{{electricity_total}}', electricity_total)
                                        .replace('{{amount_total}}', amount_total)
-                                       .replace('{{amount_before_vat}}', amount_before_vat)
-                                       .replace('{{vat}}', vat)
-                                       .replace('{{amount_total_net}}', amount_total_net)
                                        .replace('{{invoice_number}}', invoice_number)
                                        .replace('{{date_from}}', date_from)
                                        .replace('{{date_to}}', date_to)
                                        .replace('{{date_of_creating}}', date_of_creating)
                                        .replace('{{total_in_thai}}', total_in_thai)
                                        .replace('{{total_in_english}}', total_in_english)
-                                       .replace('{{qr_base64}}', qrDataUri)
-                                       .replace('{{logo_base64}}', logoDataUri);
+                                       .replace('{{qr_base64}}', qrBase64)
+                                       .replace('{{logo_base64}}', logoBase64);
 
-              // Создаем новую страницу
-              console.log('🆕 Создаем новую страницу...');
               const page = await browser.newPage();
-              
-              console.log('🔄 Устанавливаем контент...');
-              await page.setContent(invoiceHtml, { 
-                  waitUntil: 'networkidle0',
-                  timeout: 30000
-              });
+              await page.setContent(invoiceHtml, { waitUntil: 'networkidle2', timeout: 30000 });
+
               const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
               const pdfPath = path.join(pdfFolder, pdfFileName);
-              console.log('🖨️ Генерируем PDF:', pdfPath);
-              
-              await page.pdf({ 
-                  path: pdfPath, 
-                  format: 'A4', 
-                  printBackground: true,
-                  timeout: 30000
-              });
-              
-              console.log('✅ PDF успешно создан');
+              await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, timeout: 30000 });
               await page.close();
-              const pdfUrl = `/pdf/${pdfFileName}`;
+
               results.push({
-                rowIndex,
-                room,
-                name,
-                email,
-                water_total,
-                electricity_total,
-                amount_total,
-                status: 'success',
-                pdfUrl: pdfUrl
+                  room,
+                  name,
+                  email,
+                  water_total,
+                  electricity_total,
+                  amount_total,
+                  status: 'success',
+                  pdfUrl: `/pdf/${pdfFileName}`
               });
-              successCount++;
-              
-          } catch (error) {
-              console.error('❌ Ошибка:', error);
-              errorCount++;
-            }
+
+          } catch (err) {
+              console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
+              results.push({
+                  room,
+                  name,
+                  email,
+                  water_total,
+                  electricity_total,
+                  amount_total,
+                  status: 'error',
+                  pdfUrl: null
+              });
+          }
       }
-      console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
+
+      res.json({ results });
+      console.log('✅ Генерация PDF завершена');
 
   } catch (error) {
       console.error('❌ Критическая ошибка:', error);
-      res.status(500).send('Ошибка: ' + error.message);
+      res.status(500).json({ error: error.message });
   }
 });
+
 
 //-------------------------------------------------------------
 

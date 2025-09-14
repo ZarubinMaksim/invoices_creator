@@ -185,7 +185,7 @@ app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
         from: '"Invoices" <gsm@lagreenhotel.com>',
         to: row.email,
         subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
-        text: `Здравствуйте, ${row.name}! Во вложении ваш счет.`,
+        text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,
         attachments: [
           {
             filename: path.basename(row.pdf),
@@ -223,6 +223,18 @@ function excelDateToDDMMYYYY(serial) {
   const yyyy = date.getUTCFullYear();
 
   return `${dd}/${mm}/${yyyy}`;
+}
+
+function generateInvoiceNumber(counter) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0'); // месяц с 01 по 12
+  const number = String(counter).padStart(3, '0'); // порядковый номер с ведущими нулями
+  return `PS${year}${month}-${number}`;
+}
+
+function getNextInvoiceNumber() {
+  return generateInvoiceNumber(invoiceCounter++);
 }
 
 
@@ -425,8 +437,10 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         
         let successCount = 0;
         let errorCount = 0;
+        let invoiceCount = 0
 
         for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+            invoiceCount += 1
             const row = data[rowIndex];
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
@@ -447,11 +461,14 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const amount_before_vat = row['Before amount'] || '0';
             const vat = row['SVC'] || '0';
             const amount_total_net = row['Total amount'] || '0';
+            const invoice_number = generateInvoiceNumber(invoiceCount); 
             const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
             const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
             const date_of_creating = getCurrentDate()
             const total_in_thai = toThaiBahtText(amount_total_net)
             const total_in_english = toWords(amount_total_net)
+
+
 
             console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
               name, 
@@ -470,6 +487,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               amount_before_vat, 
               vat, 
               amount_total_net,
+              invoice_number,
             date_from,
           date_to,
           date_of_creating,
@@ -506,6 +524,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                                          .replace('{{amount_before_vat}}', amount_before_vat)
                                          .replace('{{vat}}', vat)
                                          .replace('{{amount_total_net}}', amount_total_net)
+                                         .replace('{{invoice_number}}', invoice_number)
                                          .replace('{{date_from}}', date_from)
                                          .replace('{{date_to}}', date_to)
                                          .replace('{{date_of_creating}}', date_of_creating)

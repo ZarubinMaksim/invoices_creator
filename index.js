@@ -238,32 +238,63 @@ function generateInvoiceNumber(counter, serial) {
   return `PS${yyyy}${mm}-${number}`;
 }
 
+let logQueue = [];
 
+app.get(`${ROUTE_PREFIX}/logs`, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  // Отправка логов по очереди каждые 200 мс
+  const interval = setInterval(() => {
+    while (logQueue.length > 0) {
+      const msg = logQueue.shift();
+      res.write(`data: ${msg}\n\n`);
+    }
+  }, 200);
+
+  req.on('close', () => {
+    clearInterval(interval);
+  });
+});
+
+// Функция для логирования и добавления сообщений в очередь
+function logToBrowser(msg) {
+  console.log(msg); // обычный консоль лог
+  logQueue.push(msg);
+}
 
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
     console.log('📤 Получен POST запрос на загрузку файла');
-    
+    logToBrowser('📤 Получен POST запрос на загрузку файла')
     if (!req.file) {
         console.log('❌ Файл не загружен');
+        logToBrowser('❌ Файл не загружен')
         return res.status(400).send('Файл не загружен');
     }
 
     console.log('✅ Файл загружен:', req.file.filename);
+    logToBrowser('✅ Файл загружен:', req.file.filename)
 
     try {
         console.log('📖 Читаем Excel файл...');
+        logToBrowser('📖 Читаем Excel файл...');
+
         const workbook = xlsx.readFile(req.file.path);
         console.log('✅ Файл прочитан успешно');
-        
+        logToBrowser('✅ Файл прочитан успешно');
+
         const sheetIndex = workbook.SheetNames.length - 4;
         const sheetName = workbook.SheetNames[sheetIndex];
         console.log('📑 Выбран лист:', sheetName);
+        logToBrowser('📑 Выбран лист:', sheetName)
         
         const worksheet = workbook.Sheets[sheetName];
         const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
         
         console.log('📈 Найдено строк:', data.length);
+        logToBrowser('📈 Найдено строк:', data.length)
 
         res.writeHead(200, {
             'Content-Type': 'text/html; charset=utf-8',
@@ -273,6 +304,8 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         res.write(`
         <h1>Файл успешно загружен: ${req.file.filename}</h1>
         <h2>Создание PDF:</h2>
+        
+        <!-- Таблица с PDF -->
         <table id="pdf-table" border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; width: 100%;">
           <thead>
             <tr style="background-color: #f2f2f2;">
@@ -280,7 +313,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               <th>Комната</th>
               <th>Имя</th>
               <th>Почта</th>
-              <th><input type="checkbox" id="select-all" /> Все</th> <!-- чекбокс выбрать все -->
+              <th><input type="checkbox" id="select-all" /> Все</th>
               <th>Вода</th>
               <th>Свет</th>
               <th>Всего</th>
@@ -291,6 +324,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
           <tbody></tbody>
         </table>
         
+        <!-- Кнопки -->
         <button onclick="window.location.href='${ROUTE_PREFIX}/download-all'" 
           style="margin-top:20px; padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px;">
           Скачать все счета ZIP
@@ -300,22 +334,27 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
           style="margin-top:20px; margin-left:20px; padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px;">
           Отправить выбранные счета на почту
         </button>
-
+        
+        <!-- Блок логов -->
+        <h2>Логи обработки</h2>
+        <div id="server-logs" style="border:1px solid #ccc; padding:10px; height:200px; overflow-y:auto; margin-top:10px;">
+          <strong>Логи сервера:</strong><br>
+        </div>
+        
         <h2>Результаты рассылки</h2>
-<table id="email-results" border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; width: 100%;">
-  <thead>
-    <tr style="background-color: #f2f2f2;">
-      <th>№</th>
-      <th>Комната</th>
-      <th>ФИО</th>
-      <th>Почта</th>
-      <th>Статус</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-
+        <table id="email-results" border="1" cellspacing="0" cellpadding="5" style="border-collapse: collapse; width: 100%;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>№</th>
+              <th>Комната</th>
+              <th>ФИО</th>
+              <th>Почта</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        
         <div id="email-status" style="margin-top:20px; font-weight:bold;"></div>
         
         <script>
@@ -342,93 +381,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                           '<td>' + name + '</td>' +
                           '<td>' + email + '</td>' +
                           '<td><input type="checkbox" class="email-checkbox" ' +
-                          'data-email="' + email + '" ' +
-                          'data-pdf="' + pdfPath + '" ' +
-                          'data-room="' + room + '" ' +
-                          'data-name="' + name + '"></td>' +                          
-                          '<td>' + water + '</td>' +
-                          '<td>' + electricity + '</td>' +
-                          '<td>' + total + '</td>' +
-                          statusCell +
-                          downloadCell;
         
-          tbody.appendChild(row);
-          window.scrollTo(0, document.body.scrollHeight);
-        }
-        
-        // выбрать все
-        document.addEventListener('change', e => {
-          if (e.target.id === 'select-all') {
-            document.querySelectorAll('.email-checkbox').forEach(cb => cb.checked = e.target.checked);
-          }
-        });
-        
-        // функция отправки писем
-        function sendSelectedEmails() {
-          var selectedElems = document.querySelectorAll('.email-checkbox:checked');
-          var selected = [];
-          for (var i=0; i<selectedElems.length; i++) {
-              var cb = selectedElems[i];
-              selected.push({
-                  email: cb.dataset.email,
-                  pdf: cb.dataset.pdf,
-                  room: cb.dataset.room,
-                  name: cb.dataset.name
-              });
-          }
-      
-          if (selected.length === 0) {
-              alert('Нет выбранных строк!');
-              return;
-          }
-      
-          fetch('${ROUTE_PREFIX}/send-emails', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({rows: selected})
-          })
-          .then(function(response) {
-              if (!response.ok) {
-                  return response.text().then(function(text){
-                      alert('Ошибка сервера: ' + response.status);
-                      console.error('❌ Сервер вернул ошибку:', text);
-                  });
-              }
-              return response.json();
-          })
-          .then(function(result) {
-              if (!result) return;
-      
-              var tbody = document.querySelector('#email-results tbody');
-              tbody.innerHTML = '';
-              var successCount = 0;
-              var errorCount = 0;
-      
-              for (var i=0; i<result.results.length; i++) {
-                  var row = result.results[i];
-                  var tr = document.createElement('tr');
-                  tr.innerHTML = '<td>' + (i+1) + '</td>' +
-                                 '<td>' + row.room + '</td>' +
-                                 '<td>' + row.name + '</td>' +
-                                 '<td>' + row.email + '</td>' +
-                                 '<td style="background:' + (row.status==='Отправлено'?'#c6efce':'#ffc7ce') + 
-                                 '; text-align:center; font-weight:bold;">' + row.status + '</td>';
-                  tbody.appendChild(tr);
-      
-                  if (row.status==='Отправлено') successCount++;
-                  else errorCount++;
-              }
-      
-              document.getElementById('email-status').innerText = 'Успешно: ' + successCount + ', Ошибок: ' + errorCount;
-          })
-          .catch(function(err){
-              console.error('❌ Ошибка при запросе:', err);
-              alert('Ошибка при отправке: ' + err.message);
-          });
-      }
-      
-        
-        </script>
         `);
         
 

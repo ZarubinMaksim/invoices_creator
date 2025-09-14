@@ -166,72 +166,67 @@ app.get(`${ROUTE_PREFIX}/download-all`, (req, res) => {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-      user: 'dvfu.student@gmail.com',
-      pass: 'oxnazmgnldhpxbkp'  // не обычный пароль, а пароль приложения Google
+      user: 'gsm@lagreenhotel.com',
+      pass: 'ljczjhrcszalpuwz'  // не обычный пароль, а пароль приложения Google
   }
 });
 
-const sendEmail = async (to, subject, text) => {
-  console.log('entered email')
-  try {
-    const mailOptions = {
-      from: 'dvfu.student@gmail.com',
-      to: to,
-      subject: subject,
-      text: text
-    }
-    // Возвращаем Promise для sendMail
-    const info = await new Promise((resolve, reject) => {
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(info);
-        }
-      });
-    });
-    console.log('sent', info.response);
-  } catch (error) {
-    console.error('error', error)
-  }
-};
 
 // API для отправки писем
 app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
   const rows = req.body.rows || [];
-  sendEmail('89940028777@ya.ru', 'invoice', 'hui')
   // Ответ сразу
-  // res.json({ status: 'queued', count: rows.length });
+  res.json({ status: 'queued', count: rows.length });
 
 
 
   // Рассылаем в фоне
-  // setImmediate(async () => {
-  //   let success = 0, error = 0;
-  //   for (const row of rows) {
-  //     try {
-  //       await transporter.sendMail({
-  //         from: '"Invoices" <gsm@lagreenhotel.com>',
-  //         to: row.email,
-  //         subject: 'Ваш счёт',
-  //         text: 'Пожалуйста, найдите прикреплённый счёт.',
-  //         attachments: [
-  //           {
-  //             filename: path.basename(row.pdf),
-  //             path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
-  //           }
-  //         ]
-  //       });
-  //       success++;
-  //     } catch (err) {
-  //       console.error('Ошибка отправки на', row.email, err);
-  //       error++;
-  //     }
-  //   }
-  //   console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
-  // });
+  setImmediate(async () => {
+    let success = 0, error = 0;
+    for (const row of rows) {
+      try {
+        await transporter.sendMail({
+          from: '"Invoices" <gsm@lagreenhotel.com>',
+          to: row.email,
+          subject: 'Ваш счёт',
+          text: 'Пожалуйста, найдите прикреплённый счёт.',
+          attachments: [
+            {
+              filename: path.basename(row.pdf),
+              path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+            }
+          ]
+        });
+        success++;
+      } catch (err) {
+        console.error('Ошибка отправки на', row.email, err);
+        error++;
+      }
+    }
+    console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
+  });
 });
 
+function getCurrentDate() {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function excelDateToDDMMYYYY(serial) {
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
+  const days = Math.floor(serial);
+  const milliseconds = days * 24 * 60 * 60 * 1000;
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0'); // месяцы с 0
+  const yyyy = date.getUTCFullYear();
+
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 
 // Маршрут для загрузки файла
@@ -403,21 +398,9 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const amount_total_net = row['Total amount'] || '0';
             const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
             const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
+            const date_of_creating = getCurrentDate()
             const total_in_thai = toThaiBahtText(amount_total_net)
             const total_in_english = toWords(amount_total_net)
-
-            function excelDateToDDMMYYYY(serial) {
-              const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
-              const days = Math.floor(serial);
-              const milliseconds = days * 24 * 60 * 60 * 1000;
-              const date = new Date(excelEpoch.getTime() + milliseconds);
-            
-              const dd = String(date.getUTCDate()).padStart(2, '0');
-              const mm = String(date.getUTCMonth() + 1).padStart(2, '0'); // месяцы с 0
-              const yyyy = date.getUTCFullYear();
-            
-              return `${dd}/${mm}/${yyyy}`;
-            }
 
             console.log(`📊 Обрабатываем строку ${rowIndex}:`, { 
               name, 
@@ -438,6 +421,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               amount_total_net,
             date_from,
           date_to,
+          date_of_creating,
           total_in_thai,
         total_in_english });
 
@@ -473,6 +457,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                                          .replace('{{amount_total_net}}', amount_total_net)
                                          .replace('{{date_from}}', date_from)
                                          .replace('{{date_to}}', date_to)
+                                         .replace('{{date_of_creating}}', date_of_creating)
                                          .replace('{{total_in_thai}}', total_in_thai)
                                          .replace('{{total_in_english}}', total_in_english)
                                          .replace('{{qr_base64}}', qrDataUri)

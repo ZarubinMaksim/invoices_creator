@@ -163,6 +163,7 @@ app.post("/upload", upload.single("excel"), async (req, res) => {
   console.log('✅ Браузер готов к работе');
 
   for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+    console.log('мы в функции фор')
     invoiceCount++;
     const row = data[rowIndex];
     const name = row['Guest name'] || '';
@@ -195,9 +196,12 @@ app.post("/upload", upload.single("excel"), async (req, res) => {
     const date_of_creating = getCurrentDate();
     const total_in_thai = toThaiBahtText(amount_total_net);
     const total_in_english = toWords(amount_total_net);
+    console.log('мы яекаем переменные ', date_to, name)
 
     try {
       // Читаем HTML шаблон
+      console.log('мы в функции try')
+
       const logoPath = path.join(__dirname, 'img/logo.png');
       const qrPath = path.join(__dirname, 'img/qr.png');
       const logoDataUri = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
@@ -229,6 +233,7 @@ app.post("/upload", upload.single("excel"), async (req, res) => {
         .replace('{{total_in_english}}', total_in_english)
         .replace('{{qr_base64}}', qrDataUri)
         .replace('{{logo_base64}}', logoDataUri);
+        console.log('мы read html', invoiceHtml)
 
       // Генерация PDF через Puppeteer
       const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;

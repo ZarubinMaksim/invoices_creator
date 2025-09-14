@@ -10,7 +10,7 @@ const { execSync } = require('child_process');
 const toThaiBahtText = require('thai-baht-text');
 const { toWords } = require('number-to-words');
 const archiver = require('archiver');
-
+const nodemailer = require('nodemailer');
 
 console.log('🚀 Инициализация сервера...');
 
@@ -162,6 +162,44 @@ app.get(`${ROUTE_PREFIX}/download-all`, (req, res) => {
   archive.finalize();
 });
 
+// Транспорт для отправки Gmail (нужен app password)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: 'gsm@lagreenhotel.com',
+      pass: 'qeap whcc zpjc ilfo'  // не обычный пароль, а пароль приложения Google
+  }
+});
+
+// API для отправки писем
+app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
+  const rows = req.body.rows || [];
+  let success = 0, error = 0;
+
+  for (const row of rows) {
+      try {
+          await transporter.sendMail({
+              from: '"Invoices" <gsm@lagreenhotel.com>',
+              to: row.email,
+              subject: 'Ваш счёт',
+              text: 'Пожалуйста, найдите прикреплённый счёт.',
+              attachments: [
+                  {
+                      filename: path.basename(row.pdf),
+                      path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+                  }
+              ]
+          });
+          success++;
+      } catch (err) {
+          console.error('Ошибка отправки на', row.email, err);
+          error++;
+      }
+  }
+
+  res.json({ success, error });
+});
+
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
     console.log('📤 Получен POST запрос на загрузку файла');
@@ -202,15 +240,26 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
               <th>Комната</th>
               <th>Имя</th>
               <th>Почта</th>
+              <th><input type="checkbox" id="select-all" /> Все</th> <!-- чекбокс выбрать все -->
               <th>Вода</th>
               <th>Свет</th>
               <th>Всего</th>
+              <th>Статус</th>
               <th>Счёт</th>
-              <th>Скачать</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+        
+        <button onclick="window.location.href='${ROUTE_PREFIX}/download-all'" 
+          style="margin-top:20px; padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px;">
+          Скачать все счета ZIP
+        </button>
+        
+        <button onclick="sendSelectedEmails()" 
+          style="margin-top:20px; margin-left:20px; padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px;">
+          Отправить выбранные счета на почту
+        </button>
         
         <script>
         let counter = 0;
@@ -218,13 +267,11 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
           counter++;
           const tbody = document.querySelector('#pdf-table tbody');
           const row = document.createElement('tr');
-      
-          // Статус
+        
           let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
                            '; text-align:center; font-weight:bold;">' +
                            (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
-      
-          // Кнопка "Скачать"
+        
           let downloadCell = '';
           if (status === 'success') {
             downloadCell = '<td><a href="' + pdfPath + '" target="_blank" ' +
@@ -232,27 +279,51 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
           } else {
             downloadCell = '<td>-</td>';
           }
-      
+        
           row.innerHTML = '<td>' + counter + '</td>' +
                           '<td>' + room + '</td>' +
                           '<td>' + name + '</td>' +
                           '<td>' + email + '</td>' +
+                          '<td><input type="checkbox" class="email-checkbox" data-email="' + email + '" data-pdf="' + pdfPath + '"></td>' +
                           '<td>' + water + '</td>' +
                           '<td>' + electricity + '</td>' +
                           '<td>' + total + '</td>' +
                           statusCell +
                           downloadCell;
-      
+        
           tbody.appendChild(row);
           window.scrollTo(0, document.body.scrollHeight);
         }
-      </script>
-             
-      <button onclick="window.location.href='${ROUTE_PREFIX}/download-all'" 
-        style="margin-top:20px; padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px;">
-  Скачать все счета ZIP
-</button>
+        
+        // выбрать все
+        document.addEventListener('change', e => {
+          if (e.target.id === 'select-all') {
+            document.querySelectorAll('.email-checkbox').forEach(cb => cb.checked = e.target.checked);
+          }
+        });
+        
+        // функция отправки писем
+        async function sendSelectedEmails() {
+          const selected = Array.from(document.querySelectorAll('.email-checkbox:checked'))
+            .map(cb => ({ email: cb.dataset.email, pdf: cb.dataset.pdf }));
+        
+          if (selected.length === 0) {
+            alert('Нет выбранных строк!');
+            return;
+          }
+        
+          const response = await fetch('${ROUTE_PREFIX}/send-emails', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: selected })
+          });
+        
+          const result = await response.json();
+          alert('Отправлено: ' + result.success + ', Ошибок: ' + result.error);
+        }
+        </script>
         `);
+        
 
         // Получаем браузер
         console.log('🖥️ Получаем экземпляр браузера...');
@@ -266,8 +337,9 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const row = data[rowIndex];
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
-            const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
-            const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
+            //const rawEmail = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
+            //const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
+            const email = '89940028777@ya.ru'
             const water_start = row['Water Meter numbers'] || '';
             const water_end = row['__EMPTY_2'] || '';
             const water_consumption = row['Water consumption'] || '';

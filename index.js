@@ -10,6 +10,8 @@ const { execSync } = require('child_process');
 const toThaiBahtText = require('thai-baht-text');
 const { toWords } = require('number-to-words');
 const archiver = require('archiver');
+const nodemailer = require('nodemailer');
+
 
 console.log('🚀 Инициализация сервера...');
 
@@ -123,6 +125,36 @@ async function getBrowser() {
     
     return browserInstance;
 }
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: 'gsm@lagreenhotel.com',
+      pass: 'Today@2025'  // лучше использовать app password, не обычный пароль
+  }
+});
+
+async function sendInvoiceEmail(toEmail, pdfPath, pdfFileName) {
+  try {
+      const mailOptions = {
+          from: `"Компания" <gsm@lagreenhotel.com>`,
+          to: toEmail,
+          subject: 'Ваш счёт',
+          text: 'Здравствуйте! Во вложении ваш счёт.',
+          attachments: [
+              { filename: pdfFileName, path: pdfPath }
+          ]
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('📧 Письмо отправлено:', info.response);
+      return true;
+  } catch (error) {
+      console.error('❌ Ошибка отправки письма:', error);
+      return false;
+  }
+}
+
 
 // Главная страница с формой загрузки
 app.get(`${ROUTE_PREFIX}/`, (req, res) => {
@@ -246,7 +278,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
       </script>
              
       <button onclick="window.location.href='${ROUTE_PREFIX}/download-all'" 
-        style="margin-top:20px; padding:10px 20px; background:#2196F3; color:white; border:none; border-radius:5px;">
+        style="margin-top:20px; padding:10px 20px; background:#4CAF50; color:white; border:none; border-radius:5px;">
   Скачать все счета ZIP
 </button>
         `);
@@ -377,7 +409,8 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                 console.log('✅ PDF успешно создан');
                 await page.close();
                 const pdfUrl = `${ROUTE_PREFIX}/pdf/${pdfFileName}`;
-
+                const clientEmail = '89940028777@ya.ru'; // берём из Excel
+                const emailSent = await sendInvoiceEmail(clientEmail, pdfPath, pdfFileName);
                 res.write(`<script>addPdfRow("${room}", "${name}", "${water_total}", "${electricity_total}", "${amount_total}", "success", "${pdfUrl}");</script>`);
                 successCount++;
                 

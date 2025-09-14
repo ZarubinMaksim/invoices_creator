@@ -171,38 +171,65 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+const sendEmail = async (to, subject, text) => {
+  console.log('entered email')
+  try {
+    const mailOptions = {
+      from: 'dvfu.student@gmail.com',
+      to: to,
+      subject: subject,
+      text: text
+    }
+    // Возвращаем Promise для sendMail
+    const info = await new Promise((resolve, reject) => {
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(info);
+        }
+      });
+    });
+    console.log('sent', info.response);
+  } catch (error) {
+    console.error('error', error)
+  }
+};
+
 // API для отправки писем
 app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
   const rows = req.body.rows || [];
-  
+  sendEmail('89940028777@ya.ru', 'invoice', 'hui')
   // Ответ сразу
-  res.json({ status: 'queued', count: rows.length });
+  // res.json({ status: 'queued', count: rows.length });
+
+
 
   // Рассылаем в фоне
-  setImmediate(async () => {
-    let success = 0, error = 0;
-    for (const row of rows) {
-      try {
-        await transporter.sendMail({
-          from: '"Invoices" <gsm@lagreenhotel.com>',
-          to: row.email,
-          subject: 'Ваш счёт',
-          text: 'Пожалуйста, найдите прикреплённый счёт.',
-          attachments: [
-            {
-              filename: path.basename(row.pdf),
-              path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
-            }
-          ]
-        });
-        success++;
-      } catch (err) {
-        console.error('Ошибка отправки на', row.email, err);
-        error++;
-      }
-    }
-    console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
-  });
+  // setImmediate(async () => {
+  //   let success = 0, error = 0;
+  //   for (const row of rows) {
+  //     try {
+  //       await transporter.sendMail({
+  //         from: '"Invoices" <gsm@lagreenhotel.com>',
+  //         to: row.email,
+  //         subject: 'Ваш счёт',
+  //         text: 'Пожалуйста, найдите прикреплённый счёт.',
+  //         attachments: [
+  //           {
+  //             filename: path.basename(row.pdf),
+  //             path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+  //           }
+  //         ]
+  //       });
+  //       success++;
+  //     } catch (err) {
+  //       console.error('Ошибка отправки на', row.email, err);
+  //       error++;
+  //     }
+  //   }
+  //   console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
+  // });
 });
 
 

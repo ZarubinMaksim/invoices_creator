@@ -306,17 +306,16 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         
         <script>
         let counter = 0;
-        
         function addPdfRow(room, name, email, water, electricity, total, status, pdfPath) {
           counter++;
-          var tbody = document.querySelector('#pdf-table tbody');
-          var row = document.createElement('tr');
+          const tbody = document.querySelector('#pdf-table tbody');
+          const row = document.createElement('tr');
         
-          var statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
+          let statusCell = '<td style="background:' + (status === 'success' ? '#c6efce' : '#ffc7ce') +
                            '; text-align:center; font-weight:bold;">' +
                            (status === 'success' ? 'SUCCESS' : 'ERROR') + '</td>';
         
-          var downloadCell = '';
+          let downloadCell = '';
           if (status === 'success') {
             downloadCell = '<td><a href="' + pdfPath + '" target="_blank" ' +
                            'style="display:inline-block; padding:5px 10px; background:#4CAF50; color:white; text-decoration:none; border-radius:5px;">Скачать</a></td>';
@@ -344,62 +343,78 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         }
         
         // выбрать все
-        document.addEventListener('change', function(e) {
+        document.addEventListener('change', e => {
           if (e.target.id === 'select-all') {
-            var cbs = document.querySelectorAll('.email-checkbox');
-            for (var i=0; i<cbs.length; i++) cbs[i].checked = e.target.checked;
+            document.querySelectorAll('.email-checkbox').forEach(cb => cb.checked = e.target.checked);
           }
         });
         
         // функция отправки писем
         function sendSelectedEmails() {
+          var selectedElems = document.querySelectorAll('.email-checkbox:checked');
           var selected = [];
-          var cbs = document.querySelectorAll('.email-checkbox:checked');
-          for (var i=0; i<cbs.length; i++) {
-            var cb = cbs[i];
-            selected.push({
-              email: cb.dataset.email,
-              pdf: cb.dataset.pdf,
-              room: cb.dataset.room,
-              name: cb.dataset.name
-            });
+          for (var i=0; i<selectedElems.length; i++) {
+              var cb = selectedElems[i];
+              selected.push({
+                  email: cb.dataset.email,
+                  pdf: cb.dataset.pdf,
+                  room: cb.dataset.room,
+                  name: cb.dataset.name
+              });
           }
-        
+      
           if (selected.length === 0) {
-            alert('Нет выбранных строк!');
-            return;
+              alert('Нет выбранных строк!');
+              return;
           }
-        
+      
           fetch('${ROUTE_PREFIX}/send-emails', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rows: selected })
-          }).then(function(resp) {
-            return resp.json();
-          }).then(function(result) {
-            // формируем таблицу с результатами
-            var tbody = document.querySelector('#email-results tbody');
-            tbody.innerHTML = '';
-            for (var i=0; i<result.rows.length; i++) {
-              var row = result.rows[i];
-              var tr = document.createElement('tr');
-              var color = row.status === 'success' ? 'green' : 'red';
-              var statusText = row.status === 'success' ? 'Отправлено' : 'Ошибка';
-              tr.innerHTML = '<td>' + (i+1) + '</td>' +
-                             '<td>' + row.room + '</td>' +
-                             '<td>' + row.name + '</td>' +
-                             '<td>' + row.email + '</td>' +
-                             '<td style="font-weight:bold; color:' + color + '">' + statusText + '</td>';
-              tbody.appendChild(tr);
-            }
-            alert('Рассылка завершена!');
-          }).catch(function(err) {
-            console.error(err);
-            alert('Ошибка при отправке: ' + err.message);
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({rows: selected})
+          })
+          .then(function(response) {
+              if (!response.ok) {
+                  return response.text().then(function(text){
+                      alert('Ошибка сервера: ' + response.status);
+                      console.error('❌ Сервер вернул ошибку:', text);
+                  });
+              }
+              return response.json();
+          })
+          .then(function(result) {
+              if (!result) return;
+      
+              var tbody = document.querySelector('#email-results tbody');
+              tbody.innerHTML = '';
+              var successCount = 0;
+              var errorCount = 0;
+      
+              for (var i=0; i<result.results.length; i++) {
+                  var row = result.results[i];
+                  var tr = document.createElement('tr');
+                  tr.innerHTML = '<td>' + (i+1) + '</td>' +
+                                 '<td>' + row.room + '</td>' +
+                                 '<td>' + row.name + '</td>' +
+                                 '<td>' + row.email + '</td>' +
+                                 '<td style="background:' + (row.status==='Отправлено'?'#c6efce':'#ffc7ce') + 
+                                 '; text-align:center; font-weight:bold;">' + row.status + '</td>';
+                  tbody.appendChild(tr);
+      
+                  if (row.status==='Отправлено') successCount++;
+                  else errorCount++;
+              }
+      
+              document.getElementById('email-status').innerText = 'Успешно: ' + successCount + ', Ошибок: ' + errorCount;
+          })
+          .catch(function(err){
+              console.error('❌ Ошибка при запросе:', err);
+              alert('Ошибка при отправке: ' + err.message);
           });
-        }
-        </script>
+      }
+      
         
+        </script>
         `);
         
 

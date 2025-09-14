@@ -45,5 +45,5 @@ app.post("/upload", upload.single("excel"), (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Invoices server запущен на порту ${PORT}`);
-  console.log(`📋 Доступно по: http://38.244.150.204:${PORT}${ROUTE_PREFIX}`);
+  console.log(`📋 Доступно по: http://38.244.150.204:${PORT}`);
 });

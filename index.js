@@ -225,17 +225,19 @@ function excelDateToDDMMYYYY(serial) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-function generateInvoiceNumber(counter) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0'); // месяц с 01 по 12
+function generateInvoiceNumber(counter, serial) {
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
+  const days = Math.floor(serial);
+  const milliseconds = days * 24 * 60 * 60 * 1000;
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0'); // месяцы с 0
+  const yyyy = date.getUTCFullYear();
+
   const number = String(counter).padStart(3, '0'); // порядковый номер с ведущими нулями
-  return `PS${year}${month}-${number}`;
+  return `PS${yyyy}${mm}-${number}`;
 }
 
-function getNextInvoiceNumber() {
-  return generateInvoiceNumber(invoiceCounter++);
-}
 
 
 // Маршрут для загрузки файла
@@ -461,7 +463,7 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             const amount_before_vat = row['Before amount'] || '0';
             const vat = row['SVC'] || '0';
             const amount_total_net = row['Total amount'] || '0';
-            const invoice_number = generateInvoiceNumber(invoiceCount); 
+            const invoice_number = generateInvoiceNumber(invoiceCount, row['__EMPTY_1']); 
             const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
             const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
             const date_of_creating = getCurrentDate()

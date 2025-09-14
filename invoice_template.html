@@ -184,6 +184,9 @@
             font-family: 'Noto Sans Thai', sans-serif;
             line-height: .7;
         }
+        .eng-text {
+            text-transform: capitalize;
+        }
         .instructions {
             margin-top: 30px;
             padding: 15px;
@@ -302,8 +305,8 @@
 
         <div class="total_text">
           <div class="total-in-words">
-            <p><strong>Remark :</strong></p>
-            <p class="thai-text"> This payment period is from <span>{{date_from}}</span> - <span>{{date_to}}</span></p>
+            <p><strong>Remark:</strong></p>
+            <p>This payment period is from <span>{{date_from}}</span> - <span>{{date_to}}</span></p>
           </div>
 
           <div class="total-in-words">
@@ -313,7 +316,7 @@
   
           <div class="total-in-words">
             <p>Grand Total ( Baht ) </p>
-            <p> {{total_in_english}}</p>
+            <p class="eng-text"> {{total_in_english}}</p>
           </div>
         </div>
         

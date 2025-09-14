@@ -242,14 +242,14 @@ function generateInvoiceNumber(counter, serial) {
 
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
-    console.log('📤 Получен POST запрос на загрузку файла');
+    // console.log('📤 Получен POST запрос на загрузку файла');
     
-    if (!req.file) {
-        console.log('❌ Файл не загружен');
-        return res.status(400).send('Файл не загружен');
-    }
+    // if (!req.file) {
+    //     console.log('❌ Файл не загружен');
+    //     return res.status(400).send('Файл не загружен');
+    // }
 
-    console.log('✅ Файл загружен:', req.file.filename);
+    // console.log('✅ Файл загружен:', req.file.filename);
 
     try {
         console.log('📖 Читаем Excel файл...');

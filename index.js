@@ -264,10 +264,9 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
 
         for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
             const row = data[rowIndex];
-            console.log(row)
             const name = row['Guest name'] || '';
             const room = row['Room no.'] || '';
-            const email = row['Guest email'] || '';
+            const email = row['Guest e-mail'] || '';
             const water_start = row['Water Meter numbers'] || '';
             const water_end = row['__EMPTY_2'] || '';
             const water_consumption = row['Water consumption'] || '';

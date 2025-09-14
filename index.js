@@ -30,11 +30,13 @@ if (!fs.existsSync(pdfFolder)) {
     console.log('📁 Папка для PDF уже существует:', pdfFolder);
 }
 
-// Делаем папку доступной по URL
-app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
+
 
 // Префикс маршрута
 const ROUTE_PREFIX = '/invoices';
+
+// Делаем папку доступной по URL
+app.use(`${ROUTE_PREFIX}/pdf`, express.static(pdfFolder));
 
 // Папка для загрузки файлов
 const uploadFolder = path.join(__dirname, 'uploads');

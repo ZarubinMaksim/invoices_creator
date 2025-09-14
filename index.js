@@ -189,8 +189,8 @@ app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
         await transporter.sendMail({
           from: '"Invoices" <gsm@lagreenhotel.com>',
           to: row.email,
-          subject: 'Ваш счёт',
-          text: 'Пожалуйста, найдите прикреплённый счёт.',
+          subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
+          text: `Здравствуйте, ${row.name}! Во вложении вы найете ваш счет за коммунальные услуги по квартире ${row.room}.`,
           attachments: [
             {
               filename: path.basename(row.pdf),
@@ -314,7 +314,11 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
                           '<td>' + room + '</td>' +
                           '<td>' + name + '</td>' +
                           '<td>' + email + '</td>' +
-                          '<td><input type="checkbox" class="email-checkbox" data-email="' + email + '" data-pdf="' + pdfPath + '"></td>' +
+                          '<td><input type="checkbox" class="email-checkbox" ' +
+                          'data-email="' + email + '" ' +
+                          'data-pdf="' + pdfPath + '" ' +
+                          'data-room="' + room + '" ' +
+                          'data-name="' + name + '"></td>' +                          
                           '<td>' + water + '</td>' +
                           '<td>' + electricity + '</td>' +
                           '<td>' + total + '</td>' +
@@ -335,7 +339,12 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
         // функция отправки писем
         async function sendSelectedEmails() {
           const selected = Array.from(document.querySelectorAll('.email-checkbox:checked'))
-            .map(cb => ({ email: cb.dataset.email, pdf: cb.dataset.pdf }));
+            .map(cb => ({ 
+              email: cb.dataset.email, 
+              pdf: cb.dataset.pdf, 
+              room: cb.dataset.room,
+              name: cb.dataset.name
+            }));
         
           if (selected.length === 0) {
             alert('Нет выбранных строк!');

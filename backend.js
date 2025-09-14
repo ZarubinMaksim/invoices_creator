@@ -111,6 +111,15 @@ const getBrowser = async () => {
     return browserInstance;
 }
 
+// Папка для сохранённых PDF
+const pdfFolder = path.join(__dirname, 'saved_pdf');
+if (!fs.existsSync(pdfFolder)) {
+    console.log('📁 Создаем папку для PDF:', pdfFolder);
+    fs.mkdirSync(pdfFolder, { recursive: true });
+} else {
+    console.log('📁 Папка для PDF уже существует:', pdfFolder);
+}
+
 // ----------------ЗАГРУЗКА ДОКУМЕНТА---------------------
 
 // Папка для загрузки файлов

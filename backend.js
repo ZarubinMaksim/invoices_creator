@@ -193,6 +193,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       let successCount = 0;
       let errorCount = 0;
       let invoiceCount = 0
+      let results = []
 
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
           invoiceCount += 1
@@ -311,15 +312,35 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               console.log('✅ PDF успешно создан');
               await page.close();
               const pdfUrl = `/pdf/${pdfFileName}`;
+              results.push({
+                room,
+                name,
+                email,
+                water_total,
+                electricity_total,
+                amount_total,
+                status: 'success',
+                pdfUrl: pdfUrl
+            });
 
               successCount++;
               
           } catch (error) {
-              console.error('❌ Ошибка:', error);
+            console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
+            results.push({
+                room,
+                name,
+                email,
+                water_total,
+                electricity_total,
+                amount_total,
+                status: 'error',
+                pdfUrl: null
+            })
               errorCount++;
             }
       }
-
+      res.json({ results });
       console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
 
   } catch (error) {

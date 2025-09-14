@@ -166,8 +166,8 @@ app.get(`${ROUTE_PREFIX}/download-all`, (req, res) => {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-      user: 'gsm@lagreenhotel.com',
-      pass: 'qeap whcc zpjc ilfo'  // не обычный пароль, а пароль приложения Google
+      user: 'dvfu.student@gmail.com',
+      pass: 'oxna zmgn ldhp xbkp'  // не обычный пароль, а пароль приложения Google
   }
 });
 

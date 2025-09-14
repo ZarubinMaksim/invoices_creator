@@ -167,7 +167,7 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
       user: 'dvfu.student@gmail.com',
-      pass: 'oxna zmgn ldhp xbkp'  // не обычный пароль, а пароль приложения Google
+      pass: 'oxnazmgnldhpxbkp'  // не обычный пароль, а пароль приложения Google
   }
 });
 

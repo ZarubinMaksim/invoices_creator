@@ -174,35 +174,35 @@ const transporter = nodemailer.createTransport({
 // API для отправки писем
 app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
   const rows = req.body.rows || [];
-  
+  console.log(rows)
   // Ответ сразу
-  res.json({ status: 'queued', count: rows.length });
+  // res.json({ status: 'queued', count: rows.length });
 
   // Рассылаем в фоне
-  setImmediate(async () => {
-    let success = 0, error = 0;
-    for (const row of rows) {
-      try {
-        await transporter.sendMail({
-          from: '"Invoices" <gsm@lagreenhotel.com>',
-          to: row.email,
-          subject: 'Ваш счёт',
-          text: 'Пожалуйста, найдите прикреплённый счёт.',
-          attachments: [
-            {
-              filename: path.basename(row.pdf),
-              path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
-            }
-          ]
-        });
-        success++;
-      } catch (err) {
-        console.error('Ошибка отправки на', row.email, err);
-        error++;
-      }
-    }
-    console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
-  });
+  // setImmediate(async () => {
+  //   let success = 0, error = 0;
+  //   for (const row of rows) {
+  //     try {
+  //       await transporter.sendMail({
+  //         from: '"Invoices" <gsm@lagreenhotel.com>',
+  //         to: row.email,
+  //         subject: 'Ваш счёт',
+  //         text: 'Пожалуйста, найдите прикреплённый счёт.',
+  //         attachments: [
+  //           {
+  //             filename: path.basename(row.pdf),
+  //             path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+  //           }
+  //         ]
+  //       });
+  //       success++;
+  //     } catch (err) {
+  //       console.error('Ошибка отправки на', row.email, err);
+  //       error++;
+  //     }
+  //   }
+  //   console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
+  // });
 });
 
 

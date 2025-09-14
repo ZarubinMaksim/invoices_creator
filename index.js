@@ -172,11 +172,15 @@ const transporter = nodemailer.createTransport({
 });
 
 // API для отправки писем
-app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
-  try {
-    const rows = req.body.rows || [];
-    let success = 0, error = 0;
+app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), (req, res) => {
+  const rows = req.body.rows || [];
+  
+  // Ответ сразу
+  res.json({ status: 'queued', count: rows.length });
 
+  // Рассылаем в фоне
+  setImmediate(async () => {
+    let success = 0, error = 0;
     for (const row of rows) {
       try {
         await transporter.sendMail({
@@ -197,13 +201,10 @@ app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
         error++;
       }
     }
-
-    res.json({ success, error });
-  } catch (e) {
-    console.error('❌ Критическая ошибка при отправке:', e);
-    res.status(500).json({ success: 0, error: rows?.length || 0, message: e.message });
-  }
+    console.log(`📧 Рассылка завершена: Успешно ${success}, Ошибок ${error}`);
+  });
 });
+
 
 
 // Маршрут для загрузки файла

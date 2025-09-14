@@ -173,32 +173,38 @@ const transporter = nodemailer.createTransport({
 
 // API для отправки писем
 app.post(`${ROUTE_PREFIX}/send-emails`, express.json(), async (req, res) => {
-  const rows = req.body.rows || [];
-  let success = 0, error = 0;
+  try {
+    const rows = req.body.rows || [];
+    let success = 0, error = 0;
 
-  for (const row of rows) {
+    for (const row of rows) {
       try {
-          await transporter.sendMail({
-              from: '"Invoices" <gsm@lagreenhotel.com>',
-              to: row.email,
-              subject: 'Ваш счёт',
-              text: 'Пожалуйста, найдите прикреплённый счёт.',
-              attachments: [
-                  {
-                      filename: path.basename(row.pdf),
-                      path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
-                  }
-              ]
-          });
-          success++;
+        await transporter.sendMail({
+          from: '"Invoices" <gsm@lagreenhotel.com>',
+          to: row.email,
+          subject: 'Ваш счёт',
+          text: 'Пожалуйста, найдите прикреплённый счёт.',
+          attachments: [
+            {
+              filename: path.basename(row.pdf),
+              path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+            }
+          ]
+        });
+        success++;
       } catch (err) {
-          console.error('Ошибка отправки на', row.email, err);
-          error++;
+        console.error('Ошибка отправки на', row.email, err);
+        error++;
       }
-  }
+    }
 
-  res.json({ success, error });
+    res.json({ success, error });
+  } catch (e) {
+    console.error('❌ Критическая ошибка при отправке:', e);
+    res.status(500).json({ success: 0, error: rows?.length || 0, message: e.message });
+  }
 });
+
 
 // Маршрут для загрузки файла
 app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
@@ -312,15 +318,28 @@ app.post(`${ROUTE_PREFIX}/upload`, upload.single('excel'), async (req, res) => {
             return;
           }
         
-          const response = await fetch('${ROUTE_PREFIX}/send-emails', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rows: selected })
-          });
+          try {
+            const response = await fetch('${ROUTE_PREFIX}/send-emails', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ rows: selected })
+            });
         
-          const result = await response.json();
-          alert('Отправлено: ' + result.success + ', Ошибок: ' + result.error);
+            if (!response.ok) {
+              const text = await response.text();
+              console.error('❌ Сервер вернул ошибку:', text);
+              alert('Ошибка сервера: ' + response.status);
+              return;
+            }
+        
+            const result = await response.json();
+            alert('Отправлено: ' + result.success + ', Ошибок: ' + result.error);
+          } catch (err) {
+            console.error('❌ Ошибка запроса:', err);
+            alert('Ошибка при отправке: ' + err.message);
+          }
         }
+        
         </script>
         `);
         

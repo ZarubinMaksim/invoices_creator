@@ -227,6 +227,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
       
       console.log('📈 Найдено строк:', data.length);
+      console.log('📈 Найдено строк:', data);
 
     
       // Получаем браузер

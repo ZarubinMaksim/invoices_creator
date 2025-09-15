@@ -409,9 +409,15 @@ app.post('/download-selected', express.json(), (req, res) => {
   archive.pipe(res);
 
   pdfUrls.forEach((url) => {
-    const filePath = path.join(__dirname, url); // путь на сервере
-    console.log(filePath)
-    archive.file(filePath, { name: path.basename(filePath) });
+    // убираем ведущий слэш, если есть
+    const relativePath = url.replace(/^\/invoices_creator\/invoices_creator\//, '');
+    const filePath = path.join(__dirname, '..', relativePath); // поднимаемся на папку выше
+    console.log(filePath);
+    if (fs.existsSync(filePath)) {
+      archive.file(filePath, { name: path.basename(filePath) });
+    } else {
+      console.warn('Файл не найден:', filePath);
+    }
   });
 
   archive.finalize();

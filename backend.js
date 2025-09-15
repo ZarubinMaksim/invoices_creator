@@ -204,6 +204,43 @@ function generateInvoiceNumber(counter, serial) {
   return `PS${yyyy}${mm}-${number}`;
 }
 
+
+
+
+
+
+// для отправки логов в реальном времени
+let clients = [];
+
+app.get('/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  // добавляем клиента в массив
+  clients.push(res);
+
+  req.on('close', () => {
+    clients = clients.filter(c => c !== res);
+  });
+});
+
+function sendLog(message) {
+  clients.forEach(res => {
+    res.write(`data: ${JSON.stringify({ message })}\n\n`);
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
 app.post(`/upload`, upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
   
@@ -355,6 +392,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               });
               
               console.log('✅ PDF успешно создан');
+              sendLog(`✅ PDF создан: ${pdfFileName}`);
               await page.close();
               const pdfUrl = `/pdf/${pdfFileName}`;
               results.push({

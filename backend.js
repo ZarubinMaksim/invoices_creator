@@ -799,7 +799,13 @@ app.post('/download-selected', express.json(), (req, res) => {
 //-------------------------------------------------------------
 
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Invoices server запущен на порту ${PORT}`);
-  // console.log(`📋 Доступно по: http://38.244.150.204:${PORT}`);
-});
+// app.listen(PORT, '0.0.0.0', () => {
+//   console.log(`✅ Invoices server запущен на порту ${PORT}`);
+//   // console.log(`📋 Доступно по: http://38.244.150.204:${PORT}`);
+// });
+
+const server = require('http').createServer(app)
+const WebSocket = require('ws')
+const wss = new WebSocket.Server({ server })
+
+server.listen(4000, () => console.log('Server running on 4000'))

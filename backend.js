@@ -408,13 +408,14 @@ app.post('/download-selected', express.json(), (req, res) => {
 
   archive.pipe(res);
 
+  const pdfFolder = path.join(__dirname, '..', 'pdf'); // поднимаемся на уровень выше backend и идем в pdf
+
   pdfUrls.forEach((url) => {
-    // убираем ведущий слэш, если есть
-    const relativePath = url.replace(/^\/invoices_creator\/invoices_creator\//, '');
-    const filePath = path.join(__dirname, '..', relativePath); // поднимаемся на папку выше
+    const fileName = path.basename(url); // берём только имя файла
+    const filePath = path.join(pdfFolder, fileName);
     console.log(filePath);
     if (fs.existsSync(filePath)) {
-      archive.file(filePath, { name: path.basename(filePath) });
+      archive.file(filePath, { name: fileName });
     } else {
       console.warn('Файл не найден:', filePath);
     }

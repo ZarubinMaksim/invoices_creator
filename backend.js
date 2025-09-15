@@ -248,7 +248,8 @@ function sendLog(message) {
 
 app.post(`/upload`, upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
-  
+  sendLog('📤 Загружаю')
+
   if (!req.file) {
       console.log('❌ Файл не загружен');
       sendLog('❌ Файл не загружен')

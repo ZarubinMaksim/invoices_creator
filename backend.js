@@ -10,6 +10,8 @@ const archiver = require('archiver');
 const app = express();
 const PORT = 4000;
 const puppeteer = require("puppeteer");
+const nodemailer = require('nodemailer');
+
 
 
 app.use(cors());
@@ -69,6 +71,45 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }
+});
+
+// Транспорт для отправки Gmail (нужен app password)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
+  }
+});
+
+// API для отправки писем
+app.post(`/send-emails`, express.json(), async (req, res) => {
+  const rows = req.body.rows || [];
+  console.log('rows', rows)
+  const results = [];
+
+  for (const row of rows) {
+    try {
+      await transporter.sendMail({
+        from: '"Invoices" <gsm@lagreenhotel.com>',
+        to: row.email,
+        subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
+        text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,
+        attachments: [
+          {
+            filename: path.basename(row.pdf),
+            path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+          }
+        ]
+      });
+      results.push({ room: row.room, name: row.name, email: row.email, status: 'Отправлено' });
+    } catch (err) {
+      console.error('Ошибка отправки на', row.email, err);
+      results.push({ room: row.room, name: row.name, email: row.email, status: 'Ошибка' });
+    }
+  }
+
+  res.json({ results });
 });
 
 // Глобальная переменная для браузера

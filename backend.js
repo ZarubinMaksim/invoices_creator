@@ -31,7 +31,7 @@ const clearChromiumProcesses = () => {
     console.log('ℹ️ Не было процессов Chromium/Chrome для завершения');
 }
 }
-await clearChromiumProcesses()
+clearChromiumProcesses()
 
 
 

@@ -410,6 +410,7 @@ app.post('/download-selected', express.json(), (req, res) => {
 
   pdfUrls.forEach((url) => {
     const filePath = path.join(__dirname, url); // путь на сервере
+    console.log(filePath)
     archive.file(filePath, { name: path.basename(filePath) });
   });
 

@@ -25,7 +25,8 @@ console.log('🚀 Инициализация сервера...');
 console.log('🔄 Убиваем все процессы Chromium/Chrome...');
 const clearChromiumProcesses = () => {
   try {
-    execSync('pkill -f chromium || pkill -f chrome', { stdio: 'ignore' });
+    execSync('pkill -f chromium', { stdio: 'ignore' });
+    execSync('pkill -f chrome', { stdio: 'ignore' });    
     console.log('✅ Все процессы Chromium/Chrome завершены');
 } catch (error) {
     console.log('ℹ️ Не было процессов Chromium/Chrome для завершения');
@@ -250,19 +251,25 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
   
   if (!req.file) {
       console.log('❌ Файл не загружен');
+      sendLog('❌ Файл не загружен')
       return res.status(400).send('Файл не загружен');
   }
 
   console.log('✅ Файл загружен:', req.file.filename);
+  sendLog('✅ Файл загружен')
+
 
   try {
       console.log('📖 Читаем Excel файл...');
+      sendLog('📖 Читаем Excel файл...')
       const workbook = xlsx.readFile(req.file.path);
       console.log('✅ Файл прочитан успешно');
+      sendLog('✅ Файл прочитан успешно')
       
       const sheetIndex = workbook.SheetNames.length - 4;
       const sheetName = workbook.SheetNames[sheetIndex];
       console.log('📑 Выбран лист:', sheetName);
+      sendLog('📑 Выбран лист:', sheetName)
       
       const worksheet = workbook.Sheets[sheetName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
@@ -273,6 +280,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
     
       // Получаем браузер
       console.log('🖥️ Получаем экземпляр браузера...');
+      sendLog('🔄 Подготавливаем редактор PDF')
       const browser = await getBrowser();
       console.log('✅ Браузер готов к работе');
       
@@ -343,6 +351,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
 
           try {
               console.log('📄 Читаем HTML шаблон...');
+              sendLog('📄 Читаем HTML шаблон...')
               const logoPath = path.join(__dirname, 'img/logo.png');
               const qrPath = path.join(__dirname, 'img/qr.png');
               const logoBase64 = fs.readFileSync(logoPath).toString('base64');
@@ -351,35 +360,37 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               const qrDataUri = `data:image/png;base64,${qrBase64}`;
               let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
               invoiceHtml = invoiceHtml.replace('{{name}}', name)
-                                       .replace('{{room}}', room)
-                                       .replace('{{water_start}}', water_start)
-                                       .replace('{{water_end}}', water_end)
-                                       .replace('{{water_consumption}}', water_consumption)
-                                       .replace('{{water_price}}', water_price)
-                                       .replace('{{water_total}}', water_total)
-                                       .replace('{{electricity_start}}', electricity_start)
-                                       .replace('{{electricity_end}}', electricity_end)
-                                       .replace('{{electricity_consumption}}', electricity_consumption)
-                                       .replace('{{electricity_price}}', electricity_price)
-                                       .replace('{{electricity_total}}', electricity_total)
-                                       .replace('{{amount_total}}', amount_total)
-                                       .replace('{{amount_before_vat}}', amount_before_vat)
-                                       .replace('{{vat}}', vat)
-                                       .replace('{{amount_total_net}}', amount_total_net)
-                                       .replace('{{invoice_number}}', invoice_number)
-                                       .replace('{{date_from}}', date_from)
-                                       .replace('{{date_to}}', date_to)
-                                       .replace('{{date_of_creating}}', date_of_creating)
-                                       .replace('{{total_in_thai}}', total_in_thai)
-                                       .replace('{{total_in_english}}', total_in_english)
-                                       .replace('{{qr_base64}}', qrDataUri)
-                                       .replace('{{logo_base64}}', logoDataUri);
+                .replace('{{room}}', room)
+                .replace('{{water_start}}', water_start)
+                .replace('{{water_end}}', water_end)
+                .replace('{{water_consumption}}', water_consumption)
+                .replace('{{water_price}}', water_price)
+                .replace('{{water_total}}', water_total)
+                .replace('{{electricity_start}}', electricity_start)
+                .replace('{{electricity_end}}', electricity_end)
+                .replace('{{electricity_consumption}}', electricity_consumption)
+                .replace('{{electricity_price}}', electricity_price)
+                .replace('{{electricity_total}}', electricity_total)
+                .replace('{{amount_total}}', amount_total)
+                .replace('{{amount_before_vat}}', amount_before_vat)
+                .replace('{{vat}}', vat)
+                .replace('{{amount_total_net}}', amount_total_net)
+                .replace('{{invoice_number}}', invoice_number)
+                .replace('{{date_from}}', date_from)
+                .replace('{{date_to}}', date_to)
+                .replace('{{date_of_creating}}', date_of_creating)
+                .replace('{{total_in_thai}}', total_in_thai)
+                .replace('{{total_in_english}}', total_in_english)
+                .replace('{{qr_base64}}', qrDataUri)
+                .replace('{{logo_base64}}', logoDataUri);
 
               // Создаем новую страницу
               console.log('🆕 Создаем новую страницу...');
+              sendLog('🆕 Создаем новую страницу...')
               const page = await browser.newPage();
               
               console.log('🔄 Устанавливаем контент...');
+              sendLog('🔄 Устанавливаем контент...')
               await page.setContent(invoiceHtml, { 
                   waitUntil: 'networkidle0',
                   timeout: 30000
@@ -387,6 +398,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
               const pdfPath = path.join(pdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
+              sendLog('🖨️ Генерируем PDF:', pdfPath)
               
               await page.pdf({ 
                   path: pdfPath, 
@@ -414,6 +426,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               
           } catch (error) {
             console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
+            sendLog('❌ Ошибка генерации PDF для строки', rowIndex, err)
             results.push({
                 room,
                 name,
@@ -429,6 +442,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       }
       res.json({ results });
       console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
+      sendLog(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`)
       if (browserInstance) {
         console.log('❌ Закрываем браузер после генерации PDF...');
         await browserInstance.close();
@@ -438,6 +452,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
     }
   } catch (error) {
       console.error('❌ Критическая ошибка:', error);
+      sendLog('❌ Критическая ошибка:', error)
       res.status(500).send('Ошибка: ' + error.message);
   }
 });

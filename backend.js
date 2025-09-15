@@ -99,14 +99,15 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
         attachments: [
           {
             filename: path.basename(row.pdf),
-            path: path.join(__dirname, row.pdf.replace(`/pdf/`, 'saved_pdf/'))
+            path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
           }
         ]
       });
-      results.push({ room: row.room, name: row.name, email: row.email, status: 'Отправлено' });
+  
+      results.push({ id: row.id, status: "success" });
     } catch (err) {
-      console.error('Ошибка отправки на', row.email, err);
-      results.push({ room: row.room, name: row.name, email: row.email, status: 'Ошибка' });
+      console.error("Ошибка отправки на", row.email, err);
+      results.push({ id: row.id, status: "error" });
     }
   }
 

@@ -11,6 +11,7 @@ const app = express();
 const PORT = 4000;
 const puppeteer = require("puppeteer");
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 
 

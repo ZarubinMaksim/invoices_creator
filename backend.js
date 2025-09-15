@@ -99,7 +99,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
         attachments: [
           {
             filename: path.basename(row.pdf),
-            path: path.join(__dirname, row.pdf.replace(`${ROUTE_PREFIX}/pdf/`, 'saved_pdf/'))
+            path: path.join(__dirname, row.pdf.replace(`/pdf/`, 'saved_pdf/'))
           }
         ]
       });

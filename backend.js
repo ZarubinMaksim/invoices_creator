@@ -392,7 +392,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               });
               
               console.log('✅ PDF успешно создан');
-              sendLog(`✅ PDF создан: ${pdfFileName}`);
+              sendLog(`✅ PDF создан!: ${pdfFileName}`);
               await page.close();
               const pdfUrl = `/pdf/${pdfFileName}`;
               results.push({

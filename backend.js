@@ -387,6 +387,35 @@ app.get(`/download-all`, (req, res) => {
   archive.finalize();
 });
 
+//download selected
+app.post('/download-selected', express.json(), (req, res) => {
+  const { pdfUrls } = req.body; // массив путей, например ['/pdfs/file1.pdf', '/pdfs/file2.pdf']
+
+  if (!pdfUrls || !pdfUrls.length) {
+    return res.status(400).send({ error: 'Нет выбранных файлов' });
+  }
+
+  const zipName = `selected_invoices_${Date.now()}.zip`;
+  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
+  res.setHeader('Content-Type', 'application/zip');
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  archive.on('error', (err) => {
+    console.error('Ошибка архивации:', err);
+    res.status(500).send({ error: err.message });
+  });
+
+  archive.pipe(res);
+
+  pdfUrls.forEach((url) => {
+    const filePath = path.join(__dirname, url); // путь на сервере
+    archive.file(filePath, { name: path.basename(filePath) });
+  });
+
+  archive.finalize();
+});
+
 
 // ----------------ЗАГРУЗКА ДОКУМЕНТА---------------------
 

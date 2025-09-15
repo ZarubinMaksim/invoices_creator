@@ -408,10 +408,9 @@ app.post('/download-selected', express.json(), (req, res) => {
 
   archive.pipe(res);
 
-  const pdfFolder = path.join(__dirname, '..', 'pdf'); // поднимаемся на уровень выше backend и идем в pdf
-
+  const pdfFolder = path.join(__dirname, 'saved_pdf'); 
   pdfUrls.forEach((url) => {
-    const fileName = path.basename(url); // берём только имя файла
+    const fileName = path.basename(url); // просто имя файла
     const filePath = path.join(pdfFolder, fileName);
     console.log(filePath);
     if (fs.existsSync(filePath)) {

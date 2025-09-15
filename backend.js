@@ -24,7 +24,7 @@ console.log('🚀 Инициализация сервера...');
 // Убиваем все висящие процессы Chromium перед запуском
 console.log('🔄 Убиваем висящие процессы Chromium...');
 try {
-    execSync('pkill -f chromium', { stdio: 'ignore' });
+    execSync('pkill -f "headless"', { stdio: 'ignore' });
     console.log('✅ Процессы Chromium завершены');
 } catch (error) {
     console.log('ℹ️ Не было процессов Chromium для завершения');

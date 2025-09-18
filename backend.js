@@ -317,27 +317,28 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
           console.log('roow', row)
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
-          const deposit = depositMap[room] || 0;
-          const email = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
+          const deposit = (parseFloat(depositMap[room]) || 0).toFixed(2);
+          const email = row['__EMPTY_1'] || '';
+          const phone = row['__EMPTY_2'] || ''; //удалить когда колонки емаил и тел будут отдельные
           // const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
           // const email = '89940028777@ya.ru'
           const water_start = (parseFloat(row['Water Meter numbers']) || 0).toFixed(2);
-          const water_end = (parseFloat(row['__EMPTY_2']) || 0).toFixed(2);
+          const water_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
           const water_consumption = (parseFloat(row['Water consumption']) || 0).toFixed(2);
           const water_price = 89;
-          const water_total = (parseFloat(row['__EMPTY_3']) || 0).toFixed(2);
+          const water_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
           const electricity_start = (parseFloat(row['Electricity Meter numbers']) || 0).toFixed(2);
-          const electricity_end = (parseFloat(row['__EMPTY_4']) || 0).toFixed(2);
+          const electricity_end = (parseFloat(row['__EMPTY_6']) || 0).toFixed(2);
           const electricity_consumption = (parseFloat(row['Eletricity']) || 0).toFixed(2);
           const electricity_price = 8;
-          const electricity_total = (parseFloat(row['__EMPTY_5']) || 0).toFixed(2);
+          const electricity_total = (parseFloat(row['__EMPTY_7']) || 0).toFixed(2);
           const amount_total = (parseFloat(row['Before amount']) || 0).toFixed(2);
           const amount_before_vat = (parseFloat(row['Before amount']) || 0).toFixed(2);
           const vat = (parseFloat(row['SVC']) || 0).toFixed(2);
           const amount_total_net = (parseFloat(row['Total amount']) || 0).toFixed(2);
           const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
           const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
-          const date_to = excelDateToDDMMYYYY(row['__EMPTY_1']) || '';
+          const date_to = excelDateToDDMMYYYY(row['__EMPTY_3']) || '';
           const date_of_creating = getCurrentDate()
           const total_in_thai = toThaiBahtText(amount_total_net)
           const total_in_english = toWords(amount_total_net)
@@ -439,6 +440,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 room,
                 name,
                 email,
+                phone,
                 water_total,
                 electricity_total,
                 amount_total,
@@ -456,6 +458,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 room,
                 name,
                 email,
+                phone,
                 water_total,
                 electricity_total,
                 amount_total,

@@ -297,14 +297,17 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       let results = []
 
       // создаём словарь депозитов
+      // создаём словарь депозитов
       const depositMap = {};
-      depositData.forEach(row => {
-        console.log('DEPOSIT', row)
-      // const roomNo = row['Room no.'] || row['Room']; // название колонки смотри в своём Excel
-      // const deposit = row['Deposit'] || row['Amount']; // название колонки с депозитом
-      // if (roomNo) {
-      // depositMap[roomNo] = deposit;
-      // }
+      depositData.forEach((row, index) => {
+
+        if (index < 2) return; // пропускаем первые 2 строки (0 и 1)
+        console.timeLog('deosti!!!', row)
+        // const roomNo = row['Room no.'] || row['Room']; // название колонки смотри в своём Excel
+        // const deposit = row['Deposit'] || row['Amount']; // название колонки с депозитом
+        // if (roomNo) {
+        //   depositMap[roomNo] = deposit;
+        // }
       });
 
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {

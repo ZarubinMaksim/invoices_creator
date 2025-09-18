@@ -301,13 +301,13 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const depositMap = {};
       depositData.forEach((row, index) => {
 
-        if (index < 2) return; // пропускаем первые 2 строки (0 и 1)
+        if (index < 1) return;
         console.log('deosti!!!', row)
-        // const roomNo = row['Room no.'] || row['Room']; // название колонки смотри в своём Excel
-        // const deposit = row['Deposit'] || row['Amount']; // название колонки с депозитом
-        // if (roomNo) {
-        //   depositMap[roomNo] = deposit;
-        // }
+        const roomNo = row['Room no.']; // название колонки смотри в своём Excel
+        const deposit = row['__EMPTY_11:']; // название колонки с депозитом
+        if (roomNo) {
+          depositMap[roomNo] = deposit;
+        }
       });
 
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
@@ -315,6 +315,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
           const row = data[rowIndex];
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
+          const deposit = depositMap[room] || 0;
           const email = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные
           // const email = rawEmail.split(/[\s/]/)[0].trim();     //удалить когда колонки емаил и тел будут отдельные        
           // const email = '89940028777@ya.ru'
@@ -456,6 +457,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 electricity_total,
                 amount_total,
                 status: 'error',
+                deposit,
                 pdfUrl: null
             })
               errorCount++;

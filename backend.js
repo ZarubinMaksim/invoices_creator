@@ -310,9 +310,10 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
         }
       });
 
-      for (let rowIndex = 2; rowIndex < 10; rowIndex++) { //it was rowIndex < data.length
+      for (let rowIndex = 2; rowIndex < 13; rowIndex++) { //it was rowIndex < data.length
           invoiceCount += 1
           const row = data[rowIndex];
+          console.log('roow', row)
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
           const deposit = depositMap[room] || 0;

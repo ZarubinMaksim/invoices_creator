@@ -302,7 +302,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       depositData.forEach((row, index) => {
 
         if (index < 2) return; // пропускаем первые 2 строки (0 и 1)
-        console.timeLog('deosti!!!', row)
+        console.log('deosti!!!', row)
         // const roomNo = row['Room no.'] || row['Room']; // название колонки смотри в своём Excel
         // const deposit = row['Deposit'] || row['Amount']; // название колонки с депозитом
         // if (roomNo) {

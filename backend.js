@@ -269,12 +269,19 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       
       const sheetIndex = workbook.SheetNames.length - 4;
       const sheetName = workbook.SheetNames[sheetIndex];
+
+      // Берём последний лист (депозит)
+      const depositIndex = workbook.SheetNames.length - 1;
+      const depositName = workbook.SheetNames[depositIndex];
+
+
       console.log('📑 Выбран лист:', sheetName);
       sendLog('📑 Выбран лист:', sheetName)
       
       const worksheet = workbook.Sheets[sheetName];
+      const depostSheet = workbook.Sheets[depositName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-      
+      const depositData = xlsx.utils.sheet_to_json(depostSheet, { defval: '' })
       console.log('📈 Найдено строк:', data.length);
 
     
@@ -289,10 +296,20 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       let invoiceCount = 0
       let results = []
 
+      // создаём словарь депозитов
+      const depositMap = {};
+      depositData.forEach(row => {
+        console.log('DEPOSIT', row)
+      // const roomNo = row['Room no.'] || row['Room']; // название колонки смотри в своём Excel
+      // const deposit = row['Deposit'] || row['Amount']; // название колонки с депозитом
+      // if (roomNo) {
+      // depositMap[roomNo] = deposit;
+      // }
+      });
+
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
           invoiceCount += 1
           const row = data[rowIndex];
-          console.log('!!!!!', row)
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
           const email = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные

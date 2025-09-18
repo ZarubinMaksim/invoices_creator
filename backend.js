@@ -308,6 +308,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
         if (roomNo) {
           depositMap[roomNo] = deposit;
         }
+        console.log('DEPOSIT MAP', depositMap)
       });
 
       for (let rowIndex = 2; rowIndex < 13; rowIndex++) { //it was rowIndex < data.length

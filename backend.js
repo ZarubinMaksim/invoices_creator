@@ -442,6 +442,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 electricity_total,
                 amount_total,
                 status: 'success',
+                deposit,
                 pdfUrl: pdfUrl
             });
 

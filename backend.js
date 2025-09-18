@@ -267,7 +267,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       console.log('✅ Файл прочитан успешно');
       sendLog('✅ Файл прочитан успешно')
       
-      const sheetIndex = workbook.SheetNames.length - 4;
+      const sheetIndex = workbook.SheetNames.length - 3;
       const sheetName = workbook.SheetNames[sheetIndex];
 
       // Берём последний лист (депозит)
@@ -310,7 +310,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
         }
       });
 
-      for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
+      for (let rowIndex = 2; rowIndex < 35; rowIndex++) { //it was rowIndex < data.length
           invoiceCount += 1
           const row = data[rowIndex];
           const name = row['Guest name'] || '';

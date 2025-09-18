@@ -276,7 +276,6 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
       
       console.log('📈 Найдено строк:', data.length);
-      console.log('📈 Найдено строк:', data);
 
     
       // Получаем браузер
@@ -293,6 +292,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       for (let rowIndex = 2; rowIndex < data.length; rowIndex++) {
           invoiceCount += 1
           const row = data[rowIndex];
+          console.log('!!!!!', row)
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
           const email = row['Guest e-mail'] || ''; //удалить когда колонки емаил и тел будут отдельные

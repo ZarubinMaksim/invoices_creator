@@ -256,24 +256,24 @@ function sendLog(message) {
 
 app.post(`/upload`, upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
-  sendLog('📤 Загружаю')
+  sendLog('📤 Uploading')
 
   if (!req.file) {
       console.log('❌ Файл не загружен');
-      sendLog('❌ Файл не загружен')
+      sendLog('❌ Error. File did not upload')
       return res.status(400).send('Файл не загружен');
   }
 
   console.log('✅ Файл загружен:', req.file.filename);
-  sendLog('✅ Файл загружен')
+  sendLog('✅ File uploaded')
 
 
   try {
       console.log('📖 Читаем Excel файл...');
-      sendLog('📖 Читаем Excel файл...')
+      sendLog('📖 Reading Excel file...')
       const workbook = xlsx.readFile(req.file.path);
       console.log('✅ Файл прочитан успешно');
-      sendLog('✅ Файл прочитан успешно')
+      sendLog('✅ Finish reading')
       
       const sheetIndex = workbook.SheetNames.length - 3;
       const sheetName = workbook.SheetNames[sheetIndex];
@@ -284,7 +284,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
 
 
       console.log('📑 Выбран лист:', sheetName);
-      sendLog('📑 Выбран лист:', sheetName)
+      sendLog('📑 Selected page:', sheetName)
       
       const worksheet = workbook.Sheets[sheetName];
       const depostSheet = workbook.Sheets[depositName];
@@ -295,7 +295,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
     
       // Получаем браузер
       console.log('🖥️ Получаем экземпляр браузера...');
-      sendLog('🔄 Подготавливаем редактор PDF')
+      sendLog('🔄 Starting PDF editor')
       const browser = await getBrowser();
       console.log('✅ Браузер готов к работе');
       
@@ -385,7 +385,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
 
           try {
               console.log('📄 Читаем HTML шаблон...');
-              sendLog('📄 Читаем HTML шаблон...')
+              sendLog('📄 Reading template...')
               const logoPath = path.join(__dirname, 'img/logo.png');
               const qrPath = path.join(__dirname, 'img/qr.png');
               const logoBase64 = fs.readFileSync(logoPath).toString('base64');
@@ -420,11 +420,11 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
 
               // Создаем новую страницу
               console.log('🆕 Создаем новую страницу...');
-              sendLog('🆕 Создаем новую страницу...')
+              sendLog('🆕 Creating new page...')
               const page = await browser.newPage();
               
               console.log('🔄 Устанавливаем контент...');
-              sendLog('🔄 Устанавливаем контент...')
+              sendLog('🔄 Setting up content...')
               await page.setContent(invoiceHtml, { 
                   waitUntil: 'networkidle0',
                   timeout: 30000
@@ -432,7 +432,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               const pdfFileName = `${room}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
               const pdfPath = path.join(pdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
-              sendLog('🖨️ Генерируем PDF:', pdfPath)
+              sendLog('🖨️ Creating PDF:', pdfPath)
               
               await page.pdf({ 
                   path: pdfPath, 
@@ -442,7 +442,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               });
               
               console.log('✅ PDF успешно создан');
-              sendLog(`✅ PDF создан!: ${pdfFileName}`);
+              sendLog(`✅ PDF has been created!: ${pdfFileName}`);
               await page.close();
               const pdfUrl = `/pdf/${pdfFileName}`;
               results.push({
@@ -463,7 +463,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               
           } catch (error) {
             console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
-            sendLog('❌ Ошибка генерации PDF для строки', rowIndex, err)
+            sendLog('❌ Error for row - ', rowIndex, err)
             results.push({
                 room,
                 name,
@@ -482,7 +482,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       }
       res.json({ results });
       console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
-      sendLog(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`)
+      sendLog(`✅ Finished. Successfull: ${successCount}, Errors: ${errorCount}`)
       if (browserInstance) {
         console.log('❌ Закрываем браузер после генерации PDF...');
         await browserInstance.close();
@@ -492,7 +492,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
     }
   } catch (error) {
       console.error('❌ Критическая ошибка:', error);
-      sendLog('❌ Критическая ошибка:', error)
+      sendLog('❌ Fatal error:', error)
       res.status(500).send('Ошибка: ' + error.message);
   }
 });

@@ -86,7 +86,7 @@ const transporter = nodemailer.createTransport({
   secure: true, // 465 требует SSL
   auth: {
     user: "juristic@lagreenhotel.com",
-    pass: "Today@@2025", // тот же пароль, что в Outlook
+    pass: "Todat@@2025", // тот же пароль, что в Outlook
   },
 
   // service: 'gmail',

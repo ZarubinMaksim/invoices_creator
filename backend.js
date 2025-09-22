@@ -81,11 +81,19 @@ const upload = multer({
 
 // Транспорт для отправки Gmail (нужен app password)
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "vps.lagreenhotel.com",
+  port: 465,
+  secure: true, // 465 требует SSL
   auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
-  }
+    user: "juristic@lagreenhotel.com",
+    pass: "Today@@2025", // тот же пароль, что в Outlook
+  },
+
+  // service: 'gmail',
+  // auth: {
+  //     user: process.env.GMAIL_USER,
+  //     pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
+  // }
 });
 
 // API для отправки писем
@@ -420,7 +428,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                   waitUntil: 'networkidle0',
                   timeout: 30000
               });
-              const pdfFileName = `${name.replace(/\s+/g, '_')}_${room}_${Date.now()}.pdf`;
+              const pdfFileName = `${room}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
               const pdfPath = path.join(pdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
               sendLog('🖨️ Генерируем PDF:', pdfPath)

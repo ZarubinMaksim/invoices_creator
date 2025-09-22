@@ -81,19 +81,19 @@ const upload = multer({
 
 // Транспорт для отправки Gmail (нужен app password)
 const transporter = nodemailer.createTransport({
-  host: "vps.lagreenhotel.com",
-  port: 465,
-  secure: true, // 465 требует SSL
-  auth: {
-    user: "juristic@lagreenhotel.com",
-    pass: "Todat@@@2025", // тот же пароль, что в Outlook
-  },
-
-  // service: 'gmail',
+  // host: "vps.lagreenhotel.com",
+  // port: 465,
+  // secure: true, // 465 требует SSL
   // auth: {
-  //     user: process.env.GMAIL_USER,
-  //     pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
-  // }
+  //   user: "juristic@lagreenhotel.com",
+  //   pass: "", // тот же пароль, что в Outlook
+  // },
+
+  service: 'gmail',
+  auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
+  }
 });
 
 // API для отправки писем

@@ -347,6 +347,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
           const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
           const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
           const date_to = excelDateToDDMMYYYY(row['__EMPTY_3']) || '';
+          const isPaid = row['Paid'] || '';
           const date_of_creating = getCurrentDate()
           const total_in_thai = toThaiBahtText(amount_total_net)
           const total_in_english = toWords(amount_total_net)
@@ -454,6 +455,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 amount_total,
                 status: 'success',
                 deposit,
+                isPaid,
                 pdfUrl: pdfUrl
             });
 
@@ -472,6 +474,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 amount_total,
                 status: 'error',
                 deposit,
+                isPaid,
                 pdfUrl: null
             })
               errorCount++;

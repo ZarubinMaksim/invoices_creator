@@ -85,8 +85,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true, // 465 требует SSL
   auth: {
-    user: "juristic@lagreenhotel.com",
-    pass: "Today@@@2025", // тот же пароль, что в Outlook
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS, // тот же пароль, что в Outlook
   },
 
   // service: 'gmail',
@@ -107,7 +107,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
       await transporter.sendMail({
         from: '"La Green Hotel & Residence" <juristic@lagreenhotel.com>',
         to: row.email,
-        subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
+        subject: `${row.room} Utility Charges Invoice in April 2025`,
         text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,
         attachments: [
           {
@@ -456,7 +456,8 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 status: 'success',
                 deposit,
                 isPaid,
-                pdfUrl: pdfUrl
+                pdfUrl: pdfUrl,
+                date_from
             });
 
               successCount++;
@@ -475,7 +476,8 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
                 status: 'error',
                 deposit,
                 isPaid,
-                pdfUrl: null
+                pdfUrl: null,
+                date_from
             })
               errorCount++;
             }

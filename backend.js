@@ -90,7 +90,7 @@ const transporter = nodemailer.createTransport({
   },
 
   // service: 'gmail',
-  // auth: {
+  // auth: {ввв
   //     user: process.env.GMAIL_USER,
   //     pass: process.env.GMAIL_PASS  // не обычный пароль, а пароль приложения Google
   // }

@@ -105,7 +105,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
   for (const row of rows) {
     try {
       await transporter.sendMail({
-        from: '"Invoices" <gsm@lagreenhotel.com>',
+        from: '"Invoices" <juristic@lagreenhotel.com>',
         to: row.email,
         subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
         text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,

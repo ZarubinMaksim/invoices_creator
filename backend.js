@@ -139,7 +139,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
       <p>Best regards,<br>
       Sumolthip Kraisuwan<br>
       Assistant of Juristic Person Manager<br>
-      <img src="cid:sign" alt="Signature" style="width:auto; height:auto;"/></p>
+      <img src="cid:sign" alt="Signature" style="width:250px; height:150px;"/></p>
       `,
         attachments: [
           {

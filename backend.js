@@ -101,6 +101,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
   const rows = req.body.rows || [];
   console.log('rows', rows)
   const results = [];
+  const row = rows[0];
   const dateObj = new Date(row.date.split("/").reverse().join("-"));
   // row.date = "01/09/2025" → "2025-09-01"
   const monthName = dateObj.toLocaleString("en-US", { month: "long" }); 

@@ -99,29 +99,61 @@ const transporter = nodemailer.createTransport({
 // API для отправки писем
 app.post(`/send-emails`, express.json(), async (req, res) => {
   const rows = req.body.rows || [];
-  console.log('rows', rows)
   const results = [];
-  const row = rows[0];
-  const dateObj = new Date(row.date.split("/").reverse().join("-"));
-  // row.date = "01/09/2025" → "2025-09-01"
-  const monthName = dateObj.toLocaleString("en-US", { month: "long" }); 
-  const year = dateObj.getFullYear();
 
   for (const row of rows) {
     try {
+      if (!row.date) throw new Error("No date provided");
+
+      // --- месяц для subject (из row.date)
+      const dateObjSubject = new Date(row.date.split("/").reverse().join("-"));
+      const monthNameSubject = dateObjSubject.toLocaleString("en-US", { month: "long" });
+      const yearSubject = dateObjSubject.getFullYear();
+
+      // --- месяц для текста письма (следующий месяц)
+      const dateObjText = new Date(row.date.split("/").reverse().join("-"));
+      dateObjText.setMonth(dateObjText.getMonth() + 1);
+      const monthNameText = dateObjText.toLocaleString("en-US", { month: "long" });
+      const yearText = dateObjText.getFullYear();
+
       await transporter.sendMail({
         from: '"La Green Hotel & Residence" <juristic@lagreenhotel.com>',
         to: row.email,
-        subject: `${row.room} Utility Charges Invoice in ${monthName} ${year}`,
-        text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,
+        subject: `${row.room} Utility Charges Invoice in ${monthNameSubject} ${yearSubject}`,
+        html: `
+      <p>Dear ${row.name},</p>
+      
+      <p>Good morning from Juristic Person Condominium,<br>
+      I hope this message finds you well.</p>
+      
+      <p>We are writing to inform you that the invoice for the utility charges related to your condominium unit has been issued.
+      The invoice includes a detailed breakdown of the charges for the specified billing period, and the payment due date is 12th ${monthNameText} ${yearText}.
+      Once you have made the payment, please send us the payment slip via email to: juristic@lagreenhotel.com or via WhatsApp no. +6692 463 3222</p>
+      
+      <p>Should you have any questions or require clarification regarding the invoice, please do not hesitate to contact us.
+      We are here to assist you and ensure that all your inquiries are promptly addressed.</p>
+      
+      <p>Thank you for your attention to this matter. Have a good day.</p>
+      
+      <p>Best regards,<br>
+      Sumolthip Kraisuwan<br>
+      Assistant of Juristic Person Manager<br>
+      <img src="cid:logo" alt="Logo" style="width:150px; height:auto;"/></p>
+      `,
         attachments: [
           {
             filename: path.basename(row.pdf),
             path: path.join(__dirname, row.pdf.replace(`/pdf/`, 'saved_pdf/'))
+          },
+          {
+            filename: 'img/logo.png',                 // файл в корне проекта
+            path: path.join(__dirname, 'img/logo.png'),
+            cid: 'logo'                           // cid для вставки
           }
         ]
       });
-  
+      
+
       results.push({ id: row.id, status: "success" });
     } catch (err) {
       console.error("Ошибка отправки на", row.email, err);
@@ -131,6 +163,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
 
   res.json({ results });
 });
+
 
 // Глобальная переменная для браузера
 let browserInstance = null;

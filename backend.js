@@ -82,8 +82,8 @@ const upload = multer({
 // Транспорт для отправки Gmail (нужен app password)
 const transporter = nodemailer.createTransport({
   host: "vps.lagreenhotel.com",
-  port: 587,
-  secure: false, // 465 требует SSL
+  port: 465,
+  secure: true, // 465 требует SSL
   auth: {
     user: "juristic@lagreenhotel.com",
     pass: "Today@@@2025", // тот же пароль, что в Outlook
@@ -105,7 +105,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
   for (const row of rows) {
     try {
       await transporter.sendMail({
-        from: '"Invoices" <juristic@lagreenhotel.com>',
+        from: '"La Green Hotel & Residence" <juristic@lagreenhotel.com>',
         to: row.email,
         subject: `Ваш счёт за номер ${row.room} в La Green Hotel & Residence`,
         text: `Здравствуйте, ${row.name}! Во вложении ваш счет за номер ${row.room}.`,

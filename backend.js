@@ -127,8 +127,9 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
       I hope this message finds you well.</p>
       
       <p>We are writing to inform you that the invoice for the utility charges related to your condominium unit has been issued.
-      The invoice includes a detailed breakdown of the charges for the specified billing period, and the payment due date is 12th ${monthNameText} ${yearText}.
-      Once you have made the payment, please send us the payment slip via email to: juristic@lagreenhotel.com or via WhatsApp no. +6692 463 3222</p>
+      The invoice includes a detailed breakdown of the charges for the specified billing period, and the payment due date is 12th ${monthNameText} ${yearText}.</p>
+      
+      <p>Once you have made the payment, please send us the payment slip via email to: juristic@lagreenhotel.com or via WhatsApp no. +66924633222 </p>
       
       <p>Should you have any questions or require clarification regarding the invoice, please do not hesitate to contact us.
       We are here to assist you and ensure that all your inquiries are promptly addressed.</p>
@@ -138,7 +139,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
       <p>Best regards,<br>
       Sumolthip Kraisuwan<br>
       Assistant of Juristic Person Manager<br>
-      <img src="cid:logo" alt="Logo" style="width:150px; height:auto;"/></p>
+      <img src="cid:sign" alt="Signature" style="width:auto; height:auto;"/></p>
       `,
         attachments: [
           {
@@ -146,9 +147,9 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
             path: path.join(__dirname, row.pdf.replace(`/pdf/`, 'saved_pdf/'))
           },
           {
-            filename: 'img/logo.png',                 // файл в корне проекта
-            path: path.join(__dirname, 'img/logo.png'),
-            cid: 'logo'                           // cid для вставки
+            filename: 'img/sign.png',                 // файл в корне проекта
+            path: path.join(__dirname, 'img/sign.png'),
+            cid: 'sign'                           // cid для вставки
           }
         ]
       });

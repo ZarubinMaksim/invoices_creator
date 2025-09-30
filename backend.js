@@ -504,8 +504,8 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
               successCount++;
               
           } catch (error) {
-            console.error('❌ Ошибка генерации PDF для строки', rowIndex, err);
-            sendLog('❌ Error for row - ', rowIndex, err)
+            console.error('❌ Ошибка генерации PDF для строки', rowIndex, error);
+            sendLog('❌ Error for row - ', rowIndex, error)
             results.push({
                 room,
                 name,
@@ -613,36 +613,6 @@ app.post('/download-selected', express.json(), (req, res) => {
   archive.finalize();
 });
 
-
-// Тестовые маршруты
-app.get('/', (req, res) => {
-  console.log('✅ GET / вызван');
-  res.json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    port: PORT
-  });
-});
-
-app.get('/test', (req, res) => {
-  console.log('✅ GET /test вызван');
-  res.json({ 
-    status: 'OK', 
-    message: 'Test route working',
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/env', (req, res) => {
-  res.json({
-    node_env: process.env.NODE_ENV,
-    port: process.env.PORT,
-    mail_user: process.env.MAIL_USER ? 'SET' : 'NOT SET',
-    cwd: process.cwd(),
-    dirname: __dirname
-  });
-});
 
 
 app.listen(PORT, '0.0.0.0', () => {

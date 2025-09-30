@@ -119,6 +119,7 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
       await transporter.sendMail({
         from: '"La Green Hotel & Residence" <juristic@lagreenhotel.com>',
         to: row.email,
+        bcc: 'juristic@lagreenhotel.com',
         subject: `${row.room} Utility Charges Invoice in ${monthNameSubject} ${yearSubject}`,
         html: `
       <p>Dear ${row.name},</p>

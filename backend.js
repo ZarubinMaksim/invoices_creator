@@ -360,7 +360,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
         console.log('DEPOSIT MAP', depositMap)
       });
 
-      for (let rowIndex = 1; rowIndex < 13; rowIndex++) { //it was rowIndex < data.length
+      for (let rowIndex = 1; rowIndex < data.length; rowIndex++) { //it was rowIndex < data.length
           invoiceCount += 1
           const row = data[rowIndex];
           console.log('roow', row)

@@ -12,6 +12,7 @@ const PORT = 4000;
 const puppeteer = require("puppeteer");
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const { execSync } = require('child_process');
 
 
 
@@ -610,6 +611,37 @@ app.post('/download-selected', express.json(), (req, res) => {
   });
 
   archive.finalize();
+});
+
+
+// Тестовые маршруты
+app.get('/', (req, res) => {
+  console.log('✅ GET / вызван');
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    port: PORT
+  });
+});
+
+app.get('/test', (req, res) => {
+  console.log('✅ GET /test вызван');
+  res.json({ 
+    status: 'OK', 
+    message: 'Test route working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/env', (req, res) => {
+  res.json({
+    node_env: process.env.NODE_ENV,
+    port: process.env.PORT,
+    mail_user: process.env.MAIL_USER ? 'SET' : 'NOT SET',
+    cwd: process.cwd(),
+    dirname: __dirname
+  });
 });
 
 

@@ -2,7 +2,7 @@
   "name": "invoices_server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "backend.js",
   "scripts": {
     "start": "node backend.js",
     "dev": "nodemon backend.js"

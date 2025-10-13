@@ -352,13 +352,12 @@ depositData.forEach((row, index) => {
   if (index < 1) return;
 
   const rawRoom = row['Room no.'];
-  if (!rawRoom) return;
+if (!rawRoom || typeof rawRoom !== 'string') return; // пропускаем, если нет строки
 
-  // Нормализация символов
-  const roomNo = rawRoom
-    .replace(/С/g, 'C')  // русская С → английская C
-    .replace(/В/g, 'B'); // русская В → английская B
-
+const roomNo = rawRoom
+  .replace(/С/g, 'C') // русская С → английская C
+  .replace(/В/g, 'B'); // русская В → английская B
+  
   let deposit = parseFloat(row['__EMPTY_11']) || 0;
 
   depositMap[roomNo] = deposit;

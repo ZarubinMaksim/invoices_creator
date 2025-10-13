@@ -348,18 +348,24 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       // создаём словарь депозитов
       // создаём словарь депозитов
       const depositMap = {};
-      depositData.forEach((row, index) => {
+depositData.forEach((row, index) => {
+  if (index < 1) return;
 
-        if (index < 1) return;
-        console.log('deosti!!!', row)
-        const roomNo = row['Room no.']; // название колонки смотри в своём Excel
-        let deposit = row['__EMPTY_11']; // название колонки с депозитом
-        deposit = parseFloat(deposit) || 0;
-        if (roomNo) {
-          depositMap[roomNo] = deposit;
-        }
-        console.log('DEPOSIT MAP', depositMap)
-      });
+  const rawRoom = row['Room no.'];
+  if (!rawRoom) return;
+
+  // Нормализация символов
+  const roomNo = rawRoom
+    .replace(/С/g, 'C')  // русская С → английская C
+    .replace(/В/g, 'B'); // русская В → английская B
+
+  let deposit = parseFloat(row['__EMPTY_11']) || 0;
+
+  depositMap[roomNo] = deposit;
+  console.log('DEPOSIT MAP', depositMap);
+});
+
+
 
       for (let rowIndex = 1; rowIndex < data.length; rowIndex++) { //it was rowIndex < data.length
           invoiceCount += 1

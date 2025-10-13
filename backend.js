@@ -354,6 +354,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
         console.log('deosti!!!', row)
         const roomNo = row['Room no.']; // название колонки смотри в своём Excel
         const deposit = row['__EMPTY_11']; // название колонки с депозитом
+        deposit = parseFloat(deposit);
         if (roomNo) {
           depositMap[roomNo] = deposit;
         }

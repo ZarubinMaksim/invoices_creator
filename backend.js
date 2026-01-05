@@ -585,30 +585,36 @@ app.get(`/download-all`, (req, res) => {
 
 //download selected
 app.post('/download-selected', express.json(), (req, res) => {
-  const { pdfUrls } = req.body; // массив путей, например ['/pdfs/file1.pdf', '/pdfs/file2.pdf']
+  const { pdfUrls } = req.body;
 
   if (!pdfUrls || !pdfUrls.length) {
-    return res.status(400).send({ error: 'Нет выбранных файлов' });
+    return res.status(400).json({ error: 'Нет выбранных файлов' });
   }
 
   const zipName = `selected_invoices_${Date.now()}.zip`;
-  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
+
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
   res.setHeader('Content-Type', 'application/zip');
 
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', (err) => {
     console.error('Ошибка архивации:', err);
-    res.status(500).send({ error: err.message });
+    res.destroy(err); // ✅ КЛЮЧ
+  });
+
+  req.on('close', () => {
+    archive.abort();
   });
 
   archive.pipe(res);
 
-  const pdfFolder = path.join(__dirname, 'saved_pdf'); 
+  const pdfFolder = path.join(__dirname, 'saved_pdf');
+
   pdfUrls.forEach((url) => {
-    const fileName = path.basename(url); // просто имя файла
+    const fileName = path.basename(url);
     const filePath = path.join(pdfFolder, fileName);
-    console.log(filePath);
+
     if (fs.existsSync(filePath)) {
       archive.file(filePath, { name: fileName });
     } else {

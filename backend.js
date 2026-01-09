@@ -365,7 +365,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       
       // 📅 определяем месяц и год из Excel (Period Check)
       const firstValidRow = data.find(r => r['Period Check']);
-      console.log('11111111', firstValidRow)
+      console.log('11111111', sheetName)
       if (!firstValidRow) {
         throw new Error('Не найден Period Check в Excel файле');
       }

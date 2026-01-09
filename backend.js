@@ -50,7 +50,8 @@ if (!fs.existsSync(pdfFolder)) {
 // const ROUTE_PREFIX = '/invoices';
 
 // Делаем папку доступной по URL
-app.use(`/pdf`, express.static(pdfFolder));
+app.use('/pdf', express.static(path.join(__dirname, 'saved_pdf')));
+
 
 // Папка для загрузки файлов
 const uploadFolder = path.join(__dirname, 'uploads');
@@ -98,24 +99,41 @@ const transporter = nodemailer.createTransport({
 });
 
 // API для отправки писем
-app.post(`/send-emails`, express.json(), async (req, res) => {
-  const rows = req.body.rows || [];
+app.post('/send-emails', express.json(), async (req, res) => {
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
   const results = [];
 
   for (const row of rows) {
     try {
-      if (!row.date) throw new Error("No date provided");
+      if (!row.date) throw new Error('No date provided');
+      if (!row.email) throw new Error('No email provided');
+      if (!row.pdf) throw new Error('No PDF path provided');
 
-      // --- месяц для subject (из row.date)
-      const dateObjSubject = new Date(row.date.split("/").reverse().join("-"));
-      const monthNameSubject = dateObjSubject.toLocaleString("en-US", { month: "long" });
-      const yearSubject = dateObjSubject.getFullYear();
+      /**
+       * row.date приходит в формате DD/MM/YYYY
+       */
+      const baseDate = new Date(row.date.split('/').reverse().join('-'));
+
+      // --- месяц для subject (расчётный месяц)
+      const monthNameSubject = baseDate.toLocaleString('en-US', { month: 'long' });
+      const yearSubject = baseDate.getFullYear();
 
       // --- месяц для текста письма (следующий месяц)
-      const dateObjText = new Date(row.date.split("/").reverse().join("-"));
-      dateObjText.setMonth(dateObjText.getMonth() + 1);
-      const monthNameText = dateObjText.toLocaleString("en-US", { month: "long" });
-      const yearText = dateObjText.getFullYear();
+      const dueDate = new Date(baseDate);
+      dueDate.setMonth(dueDate.getMonth() + 1);
+      const monthNameText = dueDate.toLocaleString('en-US', { month: 'long' });
+      const yearText = dueDate.getFullYear();
+
+      /**
+       * row.pdf:
+       * /pdf/2026-01/invoice_001.pdf
+       */
+      const cleanRelativePath = row.pdf.replace(/^\/pdf\//, '');
+      const absolutePdfPath = path.join(__dirname, 'saved_pdf', cleanRelativePath);
+
+      if (!fs.existsSync(absolutePdfPath)) {
+        throw new Error(`PDF not found: ${absolutePdfPath}`);
+      }
 
       await transporter.sendMail({
         from: '"La Green Hotel & Residence" <juristic@lagreenhotel.com>',
@@ -123,49 +141,62 @@ app.post(`/send-emails`, express.json(), async (req, res) => {
         bcc: 'juristic@lagreenhotel.com',
         subject: `${row.room} Utility Charges Invoice in ${monthNameSubject} ${yearSubject}`,
         html: `
-      <p>Dear ${row.name},</p>
-      
-      <p>Good morning from Juristic Person Condominium,<br>
-      I hope this message finds you well.</p>
-      
-      <p>We are writing to inform you that the invoice for the utility charges related to your condominium unit has been issued.
-      The invoice includes a detailed breakdown of the charges for the specified billing period, and the payment due date is 12th ${monthNameText} ${yearText}.</p>
-      
-      <p>Once you have made the payment, please send us the payment slip via email to: juristic@lagreenhotel.com or via WhatsApp no. +66924633222 </p>
-      
-      <p>Should you have any questions or require clarification regarding the invoice, please do not hesitate to contact us.
-      We are here to assist you and ensure that all your inquiries are promptly addressed.</p>
-      
-      <p>Thank you for your attention to this matter. Have a good day.</p>
-      
-      <p>Best regards,<br>
-      Sumolthip Kraisuwan<br>
-      Assistant of Juristic Person Manager<br>
-      <img src="cid:sign" alt="Signature" style="width:750px; height:200px;"/></p>
-      `,
+          <p>Dear ${row.name},</p>
+
+          <p>Good morning from Juristic Person Condominium,<br>
+          I hope this message finds you well.</p>
+
+          <p>
+            We are writing to inform you that the invoice for the utility charges related to your condominium unit has been issued.
+            The invoice includes a detailed breakdown of the charges for the specified billing period, and the payment due date is
+            <strong>12th ${monthNameText} ${yearText}</strong>.
+          </p>
+
+          <p>
+            Once you have made the payment, please send us the payment slip via email to:
+            <a href="mailto:juristic@lagreenhotel.com">juristic@lagreenhotel.com</a>
+            or via WhatsApp no. +66924633222
+          </p>
+
+          <p>
+            Should you have any questions or require clarification regarding the invoice,
+            please do not hesitate to contact us. We are here to assist you and ensure that
+            all your inquiries are promptly addressed.
+          </p>
+
+          <p>Thank you for your attention to this matter. Have a good day.</p>
+
+          <p>
+            Best regards,<br>
+            Sumolthip Kraisuwan<br>
+            Assistant of Juristic Person Manager<br>
+            <img src="cid:sign" alt="Signature" style="width:750px; height:200px;" />
+          </p>
+        `,
         attachments: [
           {
-            filename: path.basename(row.pdf),
-            path: path.join(__dirname, row.pdf.replace(`/pdf/`, 'saved_pdf/'))
+            filename: path.basename(absolutePdfPath),
+            path: absolutePdfPath
           },
           {
-            filename: 'img/sign.png',                 // файл в корне проекта
-            path: path.join(__dirname, 'img/sign.png'),
-            cid: 'sign'                           // cid для вставки
+            filename: 'sign.png',
+            path: path.join(__dirname, 'img', 'sign.png'),
+            cid: 'sign'
           }
         ]
       });
-      
 
-      results.push({ id: row.id, status: "success" });
+      results.push({ id: row.id, status: 'success' });
+
     } catch (err) {
-      console.error("Ошибка отправки на", row.email, err);
-      results.push({ id: row.id, status: "error" });
+      console.error('❌ Ошибка отправки на', row.email, err.message);
+      results.push({ id: row.id, status: 'error', message: err.message });
     }
   }
 
   res.json({ results });
 });
+
 
 
 // Глобальная переменная для браузера
@@ -330,6 +361,36 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const worksheet = workbook.Sheets[sheetName];
       const depostSheet = workbook.Sheets[depositName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
+      // 📅 определяем месяц и год из Excel (Period Check)
+      const firstValidRow = data.find(r => r['Period Check']);
+
+      if (!firstValidRow) {
+        throw new Error('Не найден Period Check в Excel файле');
+      }
+
+      const periodSerial = firstValidRow['Period Check'];
+
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const periodDate = new Date(excelEpoch.getTime() + Math.floor(periodSerial) * 86400000);
+
+      const folderYear = periodDate.getUTCFullYear();
+      const folderMonth = String(periodDate.getUTCMonth() + 1).padStart(2, '0');
+
+      const periodFolderName = `${folderYear}-${folderMonth}`;
+      const periodPdfFolder = path.join(__dirname, 'saved_pdf', periodFolderName);
+
+      // 🔁 если папка уже существует — очищаем
+      if (fs.existsSync(periodPdfFolder)) {
+        console.log('♻️ Папка существует, очищаем:', periodPdfFolder);
+        fs.rmSync(periodPdfFolder, { recursive: true, force: true });
+      }
+
+      // 📁 создаём заново
+      fs.mkdirSync(periodPdfFolder, { recursive: true });
+
+      console.log('📁 Активная папка PDF:', periodPdfFolder);
+      sendLog(`📁 Using PDF folder: ${periodFolderName}`);
+
       const depositData = xlsx.utils.sheet_to_json(depostSheet, { defval: '' })
       console.log('📈 Найдено строк:', data.length);
 
@@ -477,7 +538,7 @@ const roomNo = rawRoom
                   timeout: 30000
               });
               const pdfFileName = `${room}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
-              const pdfPath = path.join(pdfFolder, pdfFileName);
+              const pdfPath = path.join(periodPdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
               sendLog('🖨️ Creating PDF:', pdfPath)
               
@@ -491,7 +552,7 @@ const roomNo = rawRoom
               console.log('✅ PDF успешно создан');
               sendLog(`✅ PDF has been created!: ${pdfFileName}`);
               await page.close();
-              const pdfUrl = `/pdf/${pdfFileName}`;
+              const pdfUrl = `/pdf/${periodFolderName}/${pdfFileName}`;
               results.push({
                 room,
                 name,
@@ -559,7 +620,7 @@ process.on('SIGINT', async () => {
 });
 
 //all invoices ZIP
-app.get(`/download-all`, (req, res) => {
+app.get('/download-all', (req, res) => {
   const zipName = `all_invoices_${Date.now()}.zip`;
   res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
   res.setHeader('Content-Type', 'application/zip');
@@ -567,27 +628,21 @@ app.get(`/download-all`, (req, res) => {
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', err => {
-      console.error('❌ Ошибка архивации:', err);
-      res.status(500).send({ error: err.message });
+    console.error('❌ Ошибка архивации:', err);
+    res.status(500).send({ error: err.message });
   });
 
-  // Прямо в поток ответа
   archive.pipe(res);
-
-  // Добавляем все PDF из папки
-  fs.readdirSync(pdfFolder).forEach(file => {
-      const filePath = path.join(pdfFolder, file);
-      archive.file(filePath, { name: file });
-  });
-
+  archive.directory(pdfFolder, false); // 🔥 ВАЖНО
   archive.finalize();
 });
+
 
 //download selected
 app.post('/download-selected', express.json(), (req, res) => {
   const { pdfUrls } = req.body;
 
-  if (!pdfUrls || !pdfUrls.length) {
+  if (!Array.isArray(pdfUrls) || pdfUrls.length === 0) {
     return res.status(400).json({ error: 'Нет выбранных файлов' });
   }
 
@@ -599,31 +654,41 @@ app.post('/download-selected', express.json(), (req, res) => {
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', (err) => {
-    console.error('Ошибка архивации:', err);
-    res.destroy(err); // ✅ КЛЮЧ
+    console.error('❌ Ошибка архивации:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Ошибка при создании архива' });
+    }
+    res.destroy();
   });
 
+  // если клиент закрыл соединение — останавливаем архив
   req.on('close', () => {
     archive.abort();
   });
 
   archive.pipe(res);
 
-  const pdfFolder = path.join(__dirname, 'saved_pdf');
+  const basePdfFolder = path.join(__dirname, 'saved_pdf');
 
   pdfUrls.forEach((url) => {
-    const fileName = path.basename(url);
-    const filePath = path.join(pdfFolder, fileName);
+    /**
+     * url приходит в виде:
+     * /pdf/2026-01/invoice_001.pdf
+     */
+    const cleanRelativePath = url.replace(/^\/pdf\//, '');
+    const absoluteFilePath = path.join(basePdfFolder, cleanRelativePath);
+    const nameInZip = path.basename(cleanRelativePath);
 
-    if (fs.existsSync(filePath)) {
-      archive.file(filePath, { name: fileName });
+    if (fs.existsSync(absoluteFilePath)) {
+      archive.file(absoluteFilePath, { name: nameInZip });
     } else {
-      console.warn('Файл не найден:', filePath);
+      console.warn('⚠️ Файл не найден:', absoluteFilePath);
     }
   });
 
   archive.finalize();
 });
+
 
 
 

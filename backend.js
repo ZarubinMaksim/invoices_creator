@@ -361,25 +361,9 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const worksheet = workbook.Sheets[sheetName];
       const depostSheet = workbook.Sheets[depositName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-
       
-      // 📅 определяем месяц и год из Excel (Period Check)
-      const firstValidRow = data.find(r => r['Period Check']);
-      console.log('11111111', sheetName)
-      if (!firstValidRow) {
-        throw new Error('Не найден Period Check в Excel файле');
-      }
-
-      const periodSerial = firstValidRow['Period Check'];
-
-      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-      const periodDate = new Date(excelEpoch.getTime() + Math.floor(periodSerial) * 86400000);
-
-      const folderYear = periodDate.getUTCFullYear();
-      const folderMonth = String(periodDate.getUTCMonth() + 1).padStart(2, '0');
-
-      const periodFolderName = `${folderYear}-${folderMonth}`;
-      const periodPdfFolder = path.join(__dirname, 'saved_pdf', periodFolderName);
+      // 📅 определяем месяц и год из Excel
+      const periodPdfFolder = path.join(__dirname, 'saved_pdf', sheetName);
 
       // 🔁 если папка уже существует — очищаем
       if (fs.existsSync(periodPdfFolder)) {
@@ -391,7 +375,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       fs.mkdirSync(periodPdfFolder, { recursive: true });
 
       console.log('📁 Активная папка PDF:', periodPdfFolder);
-      sendLog(`📁 Using PDF folder: ${periodFolderName}`);
+      sendLog(`📁 Using PDF folder: ${sheetName}`);
 
       const depositData = xlsx.utils.sheet_to_json(depostSheet, { defval: '' })
       console.log('📈 Найдено строк:', data.length);

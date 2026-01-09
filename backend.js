@@ -290,10 +290,6 @@ function generateInvoiceNumber(counter, serial) {
 }
 
 
-
-
-
-
 // для отправки логов в реальном времени
 let clients = [];
 
@@ -315,15 +311,6 @@ function sendLog(message) {
     res.write(`data: ${JSON.stringify({ message })}\n\n`);
   });
 }
-
-
-
-
-
-
-
-
-
 
 
 app.post(`/upload`, upload.single('excel'), async (req, res) => {
@@ -675,6 +662,32 @@ app.post('/download-selected', express.json(), (req, res) => {
   archive.finalize();
 });
 
+//get saved folders list
+app.get('/saved-pdf-folders', (req, res) => {
+  const baseDir = path.join(
+    process.cwd(),
+    'saved_pdf'
+  );
+
+  try {
+    const items = fs.readdirSync(baseDir, { withFileTypes: true });
+
+    const folders = items
+      .filter(item => item.isDirectory())
+      .map(item => item.name);
+
+    res.json({
+      success: true,
+      folders
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: 'Cannot read folders'
+    });
+  }
+});
 
 
 

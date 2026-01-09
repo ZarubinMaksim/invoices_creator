@@ -689,7 +689,41 @@ app.get('/saved-pdf-folders', (req, res) => {
   }
 });
 
+app.post('/getAllPdf', (req, res) => {
+  const { folderName } = req.body;
 
+  if (!folderName) {
+    return res.status(400).json({ success: false });
+  }
+
+  const baseDir = path.resolve(__dirname, 'saved_pdf');
+  const targetDir = path.join(baseDir, folderName);
+
+  // защита от ../
+  if (!targetDir.startsWith(baseDir)) {
+    return res.status(403).json({ success: false });
+  }
+
+  try {
+    const files = fs.readdirSync(targetDir, { withFileTypes: true });
+
+    const pdfFiles = files
+      .filter(f => f.isFile() && f.name.toLowerCase().endsWith('.pdf'))
+      .map(f => ({
+        name: f.name,
+        url: `/pdf/${encodeURIComponent(folderName)}/${encodeURIComponent(f.name)}`
+      }));
+
+    res.json({
+      success: true,
+      files: pdfFiles
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Invoices server запущен на порту ${PORT}`);

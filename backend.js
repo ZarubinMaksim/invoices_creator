@@ -768,14 +768,12 @@ app.post('/generate-single-pdf', express.json(), async (req, res) => {
       date_from = getCurrentDate(),
       date_to = getCurrentDate(),
       date_of_creating = getCurrentDate(),
-      total_in_thai = 'ศูนย์บาทถ้วน',
-      total_in_english = 'zero baht'
     } = invoiceData;
 
     // Если не переданы суммы на тайском и английском, вычисляем их
     const finalAmountTotalNet = parseFloat(amount_total_net) || 0;
-    const finalTotalInThai = invoiceData.total_in_thai || toThaiBahtText(finalAmountTotalNet);
-    const finalTotalInEnglish = invoiceData.total_in_english || toWords(finalAmountTotalNet);
+    const finalTotalInThai = toThaiBahtText(finalAmountTotalNet);
+    const finalTotalInEnglish = toWords(finalAmountTotalNet);
 
     // Загружаем изображения
     const logoPath = path.join(__dirname, 'img/logo.png');

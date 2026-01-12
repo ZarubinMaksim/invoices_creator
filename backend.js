@@ -725,6 +725,34 @@ app.post('/getAllPdf', (req, res) => {
   }
 });
 
+app.get('/template', (req, res) => {
+  try {
+    const templatePath = path.join(__dirname, 'invoice_template.html');
+    let templateContent = fs.readFileSync(templatePath, 'utf-8');
+    
+    // Вставляем изображения
+    try {
+      const logoPath = path.join(__dirname, 'img/logo.png');
+      const qrPath = path.join(__dirname, 'img/qr.png');
+      const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+      const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+      
+      templateContent = templateContent
+        .replace('{{logo_base64}}', `data:image/png;base64,${logoBase64}`)
+        .replace('{{qr_base64}}', `data:image/png;base64,${qrBase64}`);
+    } catch (imgError) {
+      console.log('⚠️ Изображения не найдены, показываем без них');
+    }
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(templateContent);
+    
+  } catch (error) {
+    console.error('❌ Ошибка:', error);
+    res.status(500).send('Ошибка');
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Invoices server запущен на порту ${PORT}`);
   // console.log(`📋 Доступно по: http://38.244.150.204:${PORT}`);

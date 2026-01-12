@@ -725,31 +725,144 @@ app.post('/getAllPdf', (req, res) => {
   }
 });
 
-app.get('/template', (req, res) => {
+// Функция для генерации одного PDF на лету (без сохранения на сервере)
+app.post('/generate-single-pdf', express.json(), async (req, res) => {
+  console.log('📤 Получен запрос на генерацию одного PDF');
+  
   try {
-    const templatePath = path.join(__dirname, 'invoice_template.html');
-    let templateContent = fs.readFileSync(templatePath, 'utf-8');
-    
-    // Вставляем изображения
-    try {
-      const logoPath = path.join(__dirname, 'img/logo.png');
-      const qrPath = path.join(__dirname, 'img/qr.png');
-      const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-      const qrBase64 = fs.readFileSync(qrPath).toString('base64');
-      
-      templateContent = templateContent
-        .replace('{{logo_base64}}', `data:image/png;base64,${logoBase64}`)
-        .replace('{{qr_base64}}', `data:image/png;base64,${qrBase64}`);
-    } catch (imgError) {
-      console.log('⚠️ Изображения не найдены, показываем без них');
+    const invoiceData = req.body;
+    console.log(invoiceData)
+    // Проверяем обязательные поля
+    if (!invoiceData || !invoiceData.name || !invoiceData.room) {
+      return res.status(400).json({ 
+        error: 'Необходимы name и room для генерации PDF' 
+      });
     }
+
+    console.log('📊 Данные для генерации:', {
+      name: invoiceData.name,
+      room: invoiceData.room,
+      date_from: invoiceData.date_from,
+      date_to: invoiceData.date_to
+    });
+
+    // Подготавливаем данные
+    const {
+      name = '',
+      room = '',
+      water_start = '0',
+      water_end = '0',
+      water_consumption = '0',
+      water_price = 89,
+      water_total = '0',
+      electricity_start = '0',
+      electricity_end = '0',
+      electricity_consumption = '0',
+      electricity_price = 8,
+      electricity_total = '0',
+      amount_total = '0',
+      amount_before_vat = '0',
+      vat = '0',
+      amount_total_net = '0',
+      invoice_number = 'TEMP-INV-' + Date.now(),
+      date_from = getCurrentDate(),
+      date_to = getCurrentDate(),
+      date_of_creating = getCurrentDate(),
+      total_in_thai = 'ศูนย์บาทถ้วน',
+      total_in_english = 'zero baht'
+    } = invoiceData;
+
+    // Если не переданы суммы на тайском и английском, вычисляем их
+    const finalAmountTotalNet = parseFloat(amount_total_net) || 0;
+    const finalTotalInThai = invoiceData.total_in_thai || toThaiBahtText(finalAmountTotalNet);
+    const finalTotalInEnglish = invoiceData.total_in_english || toWords(finalAmountTotalNet);
+
+    // Загружаем изображения
+    const logoPath = path.join(__dirname, 'img/logo.png');
+    const qrPath = path.join(__dirname, 'img/qr.png');
+    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+    const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+    const logoDataUri = `data:image/png;base64,${logoBase64}`;
+    const qrDataUri = `data:image/png;base64,${qrBase64}`;
+
+    // Читаем шаблон
+    let invoiceHtml = fs.readFileSync(
+      path.join(__dirname, 'invoice_template.html'), 
+      'utf-8'
+    );
+
+    // Заменяем плейсхолдеры
+    invoiceHtml = invoiceHtml
+      .replace('{{name}}', name)
+      .replace('{{room}}', room)
+      .replace('{{water_start}}', parseFloat(water_start).toFixed(2))
+      .replace('{{water_end}}', parseFloat(water_end).toFixed(2))
+      .replace('{{water_consumption}}', parseFloat(water_consumption).toFixed(2))
+      .replace('{{water_price}}', water_price)
+      .replace('{{water_total}}', parseFloat(water_total).toFixed(2))
+      .replace('{{electricity_start}}', parseFloat(electricity_start).toFixed(2))
+      .replace('{{electricity_end}}', parseFloat(electricity_end).toFixed(2))
+      .replace('{{electricity_consumption}}', parseFloat(electricity_consumption).toFixed(2))
+      .replace('{{electricity_price}}', electricity_price)
+      .replace('{{electricity_total}}', parseFloat(electricity_total).toFixed(2))
+      .replace('{{amount_total}}', parseFloat(amount_total).toFixed(2))
+      .replace('{{amount_before_vat}}', parseFloat(amount_before_vat).toFixed(2))
+      .replace('{{vat}}', parseFloat(vat).toFixed(2))
+      .replace('{{amount_total_net}}', parseFloat(amount_total_net).toFixed(2))
+      .replace('{{invoice_number}}', invoice_number)
+      .replace('{{date_from}}', date_from)
+      .replace('{{date_to}}', date_to)
+      .replace('{{date_of_creating}}', date_of_creating)
+      .replace('{{total_in_thai}}', finalTotalInThai)
+      .replace('{{total_in_english}}', finalTotalInEnglish)
+      .replace('{{qr_base64}}', qrDataUri)
+      .replace('{{logo_base64}}', logoDataUri);
+
+    // Создаем PDF в памяти
+    console.log('🖥️ Запускаем браузер для генерации PDF...');
+    const browser = await getBrowser();
+    const page = await browser.newPage();
     
-    res.setHeader('Content-Type', 'text/html');
-    res.send(templateContent);
+    await page.setContent(invoiceHtml, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+
+    // Генерируем PDF в буфер
+    console.log('🖨️ Генерируем PDF в буфер...');
+    const pdfBuffer = await page.pdf({ 
+      format: 'A4', 
+      printBackground: true,
+      timeout: 30000
+    });
+
+    await page.close();
+    
+    // Формируем имя файла
+    const fileName = `${room}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`
+      .replace(/[^a-zA-Z0-9_.-]/g, '_');
+    
+    // Отправляем PDF прямо в браузер
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    console.log(`✅ PDF успешно сгенерирован и отправлен: ${fileName} (${pdfBuffer.length} bytes)`);
+    
+    // Не закрываем браузер, чтобы он мог использоваться дальше
+    // (браузер управляется через getBrowser и будет закрыт при SIGINT)
+    
+    res.end(pdfBuffer);
     
   } catch (error) {
-    console.error('❌ Ошибка:', error);
-    res.status(500).send('Ошибка');
+    console.error('❌ Ошибка генерации PDF:', error);
+    
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'Ошибка генерации PDF', 
+        details: error.message 
+      });
+    }
   }
 });
 

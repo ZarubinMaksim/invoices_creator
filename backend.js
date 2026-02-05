@@ -276,6 +276,16 @@ function excelDateToDDMMYYYY(serial) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function getMonthNameFromExcelDate(serial) {
+  const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
+  const days = Math.floor(serial);
+  const milliseconds = days * 24 * 60 * 60 * 1000;
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+  
+  // Получаем название месяца (например, "January", "February")
+  return date.toLocaleString('en-US', { month: 'long' });
+}
+
 function generateInvoiceNumber(counter, serial) {
   const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // база для Excel
   const days = Math.floor(serial);
@@ -428,6 +438,7 @@ const roomNo = rawRoom
           const invoice_number = generateInvoiceNumber(invoiceCount, row['Period Check']); 
           const date_from = excelDateToDDMMYYYY(row['Period Check']) || '';
           const date_to = excelDateToDDMMYYYY(row['__EMPTY_3']) || '';
+          const monthName = getMonthNameFromExcelDate(row['Period Check']);
           const isPaid = row['Paid'] || '';
           const date_of_creating = getCurrentDate()
           const total_in_thai = toThaiBahtText(amount_total_net)
@@ -510,7 +521,7 @@ const roomNo = rawRoom
                   waitUntil: 'networkidle0',
                   timeout: 30000
               });
-              const pdfFileName = `${room}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
+              const pdfFileName = `${room}_${monthName}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
               const pdfPath = path.join(periodPdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
               sendLog('🖨️ Creating PDF:', pdfPath)

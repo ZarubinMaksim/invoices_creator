@@ -647,9 +647,9 @@ app.post('/download-selected', express.json(), (req, res) => {
   });
 
   // если клиент закрыл соединение — останавливаем архив
-  req.on('close', () => {
-    archive.abort();
-  });
+  // req.on('close', () => {
+  //   archive.abort();
+  // });
 
   archive.pipe(res);
 

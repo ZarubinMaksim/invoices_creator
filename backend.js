@@ -665,6 +665,9 @@ app.post('/download-selected', express.json(), (req, res) => {
     const absoluteFilePath = path.join(basePdfFolder, cleanRelativePath);
     const nameInZip = path.basename(cleanRelativePath);
 
+    console.log('TRY:', absoluteFilePath);
+    console.log('EXISTS:', fs.existsSync(absoluteFilePath));
+
     if (fs.existsSync(absoluteFilePath)) {
       archive.file(absoluteFilePath, { name: nameInZip });
     } else {

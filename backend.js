@@ -625,6 +625,7 @@ app.get('/download-all', (req, res) => {
 //download selected
 app.post('/download-selected', express.json(), (req, res) => {
   const { pdfUrls } = req.body;
+  console.log(pdfUrls)
 
   if (!Array.isArray(pdfUrls) || pdfUrls.length === 0) {
     return res.status(400).json({ error: 'Нет выбранных файлов' });

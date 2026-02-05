@@ -128,8 +128,10 @@ app.post('/send-emails', express.json(), async (req, res) => {
        * row.pdf:
        * /pdf/2026-01/invoice_001.pdf
        */
-      const cleanRelativePath = row.pdf.replace(/^\/pdf\//, '');
-      const absolutePdfPath = path.join(__dirname, 'saved_pdf', cleanRelativePath);
+       const cleanRelativePath = decodeURIComponent(
+        row.pdf.replace(/^\/pdf\//, '')
+      );
+       const absolutePdfPath = path.join(__dirname, 'saved_pdf', cleanRelativePath);
 
       if (!fs.existsSync(absolutePdfPath)) {
         throw new Error(`PDF not found: ${absolutePdfPath}`);

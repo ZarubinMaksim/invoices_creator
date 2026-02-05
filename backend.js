@@ -606,60 +606,18 @@ process.on('SIGINT', async () => {
 //all invoices ZIP
 app.get('/download-all', (req, res) => {
   const zipName = `all_invoices_${Date.now()}.zip`;
-  
-  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
   res.setHeader('Content-Type', 'application/zip');
 
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', err => {
     console.error('❌ Ошибка архивации:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Ошибка при создании архива' });
-    }
-    res.destroy();
-  });
-
-  // если клиент закрыл соединение — останавливаем архив
-  req.on('close', () => {
-    archive.abort();
+    res.status(500).send({ error: err.message });
   });
 
   archive.pipe(res);
-
-  // Функция для рекурсивного добавления всех файлов
-  function addDirectoryToArchive(dirPath, archivePath = '') {
-    try {
-      const items = fs.readdirSync(dirPath, { withFileTypes: true });
-      
-      items.forEach(item => {
-        const fullPath = path.join(dirPath, item.name);
-        const archiveName = path.join(archivePath, item.name);
-        
-        if (item.isDirectory()) {
-          // Рекурсивно добавляем подпапки
-          addDirectoryToArchive(fullPath, archiveName);
-        } else if (item.isFile() && item.name.toLowerCase().endsWith('.pdf')) {
-          // Добавляем PDF файл
-          archive.file(fullPath, { name: archiveName });
-        }
-      });
-    } catch (err) {
-      console.error('❌ Ошибка при чтении директории:', dirPath, err);
-    }
-  }
-
-  // Начинаем добавление файлов
-  addDirectoryToArchive(pdfFolder);
-  
-  archive.on('progress', (progress) => {
-    console.log(`📦 Архивация: ${progress.entries.processed} файлов обработано`);
-  });
-  
-  archive.on('end', () => {
-    console.log(`✅ Архив ${zipName} успешно создан`);
-  });
-
+  archive.directory(pdfFolder, false); // 🔥 ВАЖНО
   archive.finalize();
 });
 
@@ -697,6 +655,7 @@ app.post('/download-selected', express.json(), (req, res) => {
   const basePdfFolder = path.join(__dirname, 'saved_pdf');
 
   pdfUrls.forEach((url) => {
+    console.log('YAYAYAYYYA', url)
     /**
      * url приходит в виде:
      * /pdf/2026-01/invoice_001.pdf

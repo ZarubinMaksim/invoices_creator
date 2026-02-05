@@ -653,7 +653,7 @@ app.post('/download-selected', express.json(), (req, res) => {
 
   archive.pipe(res);
 
-  const basePdfFolder = path.join(__dirname, 'saved_pdf');
+  const basePdfFolder = path.join(process.cwd(), 'saved_pdf');
 
   pdfUrls.forEach((url) => {
     console.log('YAYAYAYYYA', url)

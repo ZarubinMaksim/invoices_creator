@@ -606,18 +606,60 @@ process.on('SIGINT', async () => {
 //all invoices ZIP
 app.get('/download-all', (req, res) => {
   const zipName = `all_invoices_${Date.now()}.zip`;
-  res.setHeader('Content-Disposition', `attachment; filename=${zipName}`);
+  
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
   res.setHeader('Content-Type', 'application/zip');
 
   const archive = archiver('zip', { zlib: { level: 9 } });
 
   archive.on('error', err => {
     console.error('❌ Ошибка архивации:', err);
-    res.status(500).send({ error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Ошибка при создании архива' });
+    }
+    res.destroy();
+  });
+
+  // если клиент закрыл соединение — останавливаем архив
+  req.on('close', () => {
+    archive.abort();
   });
 
   archive.pipe(res);
-  archive.directory(pdfFolder, false); // 🔥 ВАЖНО
+
+  // Функция для рекурсивного добавления всех файлов
+  function addDirectoryToArchive(dirPath, archivePath = '') {
+    try {
+      const items = fs.readdirSync(dirPath, { withFileTypes: true });
+      
+      items.forEach(item => {
+        const fullPath = path.join(dirPath, item.name);
+        const archiveName = path.join(archivePath, item.name);
+        
+        if (item.isDirectory()) {
+          // Рекурсивно добавляем подпапки
+          addDirectoryToArchive(fullPath, archiveName);
+        } else if (item.isFile() && item.name.toLowerCase().endsWith('.pdf')) {
+          // Добавляем PDF файл
+          archive.file(fullPath, { name: archiveName });
+        }
+      });
+    } catch (err) {
+      console.error('❌ Ошибка при чтении директории:', dirPath, err);
+    }
+  }
+
+  // Начинаем добавление файлов
+  addDirectoryToArchive(pdfFolder);
+  
+  archive.on('progress', (progress) => {
+    console.log(`📦 Архивация: ${progress.entries.processed} файлов обработано`);
+  });
+  
+  archive.on('end', () => {
+    console.log(`✅ Архив ${zipName} успешно создан`);
+  });
+
   archive.finalize();
 });
 

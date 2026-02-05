@@ -525,7 +525,7 @@ const roomNo = rawRoom
               console.log('✅ PDF успешно создан');
               sendLog(`✅ PDF has been created!: ${pdfFileName}`);
               await page.close();
-              const pdfUrl = `/pdf/${periodFolderName}/${pdfFileName}`;
+              const pdfUrl = `/pdf/${periodPdfFolder}/${pdfFileName}`;
               results.push({
                 room,
                 name,

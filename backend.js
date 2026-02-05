@@ -661,7 +661,9 @@ app.post('/download-selected', express.json(), (req, res) => {
      * url приходит в виде:
      * /pdf/2026-01/invoice_001.pdf
      */
-    const cleanRelativePath = url.replace(/^\/pdf\//, '');
+     const cleanRelativePath = decodeURIComponent(
+      url.replace(/^\/pdf\//, '')
+    );
     const absoluteFilePath = path.join(basePdfFolder, cleanRelativePath);
     const nameInZip = path.basename(cleanRelativePath);
 

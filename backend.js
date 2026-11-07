@@ -343,6 +343,7 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       console.log('📖 Читаем Excel файл...');
       sendLog('📖 Reading Excel file...')
       const workbook = xlsx.readFile(req.file.path);
+      fs.unlink(req.file.path, () => {});
       console.log('✅ Файл прочитан успешно');
       sendLog('✅ Finish reading')
       
@@ -361,20 +362,13 @@ app.post(`/upload`, upload.single('excel'), async (req, res) => {
       const depostSheet = workbook.Sheets[depositName];
       const data = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
       
-      // 📅 определяем месяц и год из Excel
-      const periodPdfFolder = path.join(__dirname, 'saved_pdf', sheetName);
-
-      // 🔁 если папка уже существует — очищаем
-      if (fs.existsSync(periodPdfFolder)) {
-        console.log('♻️ Папка существует, очищаем:', periodPdfFolder);
-        fs.rmSync(periodPdfFolder, { recursive: true, force: true });
+      // Очищаем папку saved_pdf (удаляем всё содержимое, саму папку оставляем)
+      for (const file of fs.readdirSync(pdfFolder)) {
+        fs.rmSync(path.join(pdfFolder, file), { recursive: true, force: true });
       }
 
-      // 📁 создаём заново
-      fs.mkdirSync(periodPdfFolder, { recursive: true });
-
-      console.log('📁 Активная папка PDF:', periodPdfFolder);
-      sendLog(`📁 Using PDF folder: ${sheetName}`);
+      console.log('📁 Папка PDF очищена:', pdfFolder);
+      sendLog('📁 PDF folder cleaned');
 
       const depositData = xlsx.utils.sheet_to_json(depostSheet, { defval: '' })
       console.log('📈 Найдено строк:', data.length);
@@ -524,7 +518,7 @@ const roomNo = rawRoom
                   timeout: 30000
               });
               const pdfFileName = `${room}_${monthName}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
-              const pdfPath = path.join(periodPdfFolder, pdfFileName);
+              const pdfPath = path.join(pdfFolder, pdfFileName);
               console.log('🖨️ Генерируем PDF:', pdfPath);
               sendLog('🖨️ Creating PDF:', pdfPath)
               
@@ -538,7 +532,7 @@ const roomNo = rawRoom
               console.log('✅ PDF успешно создан');
               sendLog(`✅ PDF has been created!: ${pdfFileName}`);
               await page.close();
-              const pdfUrl = `/pdf/${encodeURIComponent(sheetName)}/${encodeURIComponent(pdfFileName)}`;
+              const pdfUrl = `/pdf/${encodeURIComponent(pdfFileName)}`;
               results.push({
                 room,
                 name,
@@ -680,69 +674,6 @@ app.post('/download-selected', express.json(), (req, res) => {
   });
 
   archive.finalize();
-});
-
-//get saved folders list
-app.get('/saved-pdf-folders', (req, res) => {
-  const baseDir = path.join(
-    process.cwd(),
-    'saved_pdf'
-  );
-
-  try {
-    const items = fs.readdirSync(baseDir, { withFileTypes: true });
-
-    const folders = items
-      .filter(item => item.isDirectory())
-      .map(item => item.name);
-
-    res.json({
-      success: true,
-      folders
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: 'Cannot read folders'
-    });
-  }
-});
-
-app.post('/getAllPdf', (req, res) => {
-  const { folderName } = req.body;
-
-  if (!folderName) {
-    return res.status(400).json({ success: false });
-  }
-
-  const baseDir = path.resolve(__dirname, 'saved_pdf');
-  const targetDir = path.join(baseDir, folderName);
-
-  // защита от ../
-  if (!targetDir.startsWith(baseDir)) {
-    return res.status(403).json({ success: false });
-  }
-
-  try {
-    const files = fs.readdirSync(targetDir, { withFileTypes: true });
-
-    const pdfFiles = files
-      .filter(f => f.isFile() && f.name.toLowerCase().endsWith('.pdf'))
-      .map(f => ({
-        name: f.name,
-        url: `/pdf/${encodeURIComponent(folderName)}/${encodeURIComponent(f.name)}`
-      }));
-
-    res.json({
-      success: true,
-      files: pdfFiles
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
 });
 
 // Функция для генерации одного PDF на лету (без сохранения на сервере)

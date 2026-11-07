@@ -13,7 +13,9 @@ const puppeteer = require("puppeteer");
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 const { execSync } = require('child_process');
-
+const logoDataUri = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, 'img/logo.png')).toString('base64')}`;
+const qrDataUri = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, 'img/qr.png')).toString('base64')}`;
+const invoiceTemplate = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
 
 
 app.use(cors());
@@ -214,8 +216,6 @@ async function getBrowser() {
               '--disable-setuid-sandbox',
               '--disable-dev-shm-usage',
               '--disable-gpu',
-              '--single-process',
-              '--no-zygote',
               '--disable-extensions',
               '--disable-software-rasterizer',
               '--disable-background-timer-throttling',
@@ -324,6 +324,13 @@ function sendLog(message) {
   });
 }
 
+async function closeBrowser() {
+  if (browserInstance) {
+    try { await browserInstance.close(); } catch (e) { console.error(e); }
+    browserInstance = null;
+  }
+}
+
 
 app.post(`/upload`, upload.single('excel'), async (req, res) => {
   console.log('📤 Получен POST запрос на загрузку файла');
@@ -401,7 +408,6 @@ const roomNo = rawRoom
   let deposit = parseFloat(row['__EMPTY_11']) || 0;
 
   depositMap[roomNo] = deposit;
-  console.log('DEPOSIT MAP', depositMap);
 });
 
 
@@ -409,7 +415,6 @@ const roomNo = rawRoom
       for (let rowIndex = 1; rowIndex < data.length; rowIndex++) { //it was rowIndex < data.length
           invoiceCount += 1
           const row = data[rowIndex];
-          console.log('roow', row)
           const name = row['Guest name'] || '';
           const room = row['Room no.'] || '';
           const deposit = (parseFloat(depositMap[room]) || 0).toFixed(2);
@@ -470,17 +475,19 @@ const roomNo = rawRoom
               console.log('⏭️ Пропускаем пустую строку');
               continue;
           }
+          let page = null;
 
           try {
               console.log('📄 Читаем HTML шаблон...');
               sendLog('📄 Reading template...')
-              const logoPath = path.join(__dirname, 'img/logo.png');
-              const qrPath = path.join(__dirname, 'img/qr.png');
-              const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-              const qrBase64 = fs.readFileSync(qrPath).toString('base64');
-              const logoDataUri = `data:image/png;base64,${logoBase64}`;
-              const qrDataUri = `data:image/png;base64,${qrBase64}`;
-              let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
+              // const logoPath = path.join(__dirname, 'img/logo.png');
+              // const qrPath = path.join(__dirname, 'img/qr.png');
+              // const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+              // const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+              let invoiceHtml = invoiceTemplate;
+              // const logoDataUri = `data:image/png;base64,${logoBase64}`;
+              // const qrDataUri = `data:image/png;base64,${qrBase64}`;
+              // let invoiceHtml = fs.readFileSync(path.join(__dirname, 'invoice_template.html'), 'utf-8');
               invoiceHtml = invoiceHtml.replace('{{name}}', name)
                 .replace('{{room}}', room)
                 .replace('{{water_start}}', water_start)
@@ -509,12 +516,11 @@ const roomNo = rawRoom
               // Создаем новую страницу
               console.log('🆕 Создаем новую страницу...');
               sendLog('🆕 Creating new page...')
-              const page = await browser.newPage();
-              
+              page = await browser.newPage();              
               console.log('🔄 Устанавливаем контент...');
               sendLog('🔄 Setting up content...')
               await page.setContent(invoiceHtml, { 
-                  waitUntil: 'networkidle0',
+                  waitUntil: 'load',
                   timeout: 30000
               });
               const pdfFileName = `${room}_${monthName}_${name.replace(/\s+/g, '_')}_${invoice_number}.pdf`;
@@ -531,7 +537,6 @@ const roomNo = rawRoom
               
               console.log('✅ PDF успешно создан');
               sendLog(`✅ PDF has been created!: ${pdfFileName}`);
-              await page.close();
               const pdfUrl = `/pdf/${encodeURIComponent(pdfFileName)}`;
               results.push({
                 room,
@@ -568,23 +573,20 @@ const roomNo = rawRoom
                 date_from
             })
               errorCount++;
+            } finally {
+            if (page) await page.close().catch(() => {});
             }
       }
       res.json({ results });
       console.log(`✅ Обработка завершена. Успешно: ${successCount}, Ошибок: ${errorCount}`);
       sendLog(`✅ Finished. Successfull: ${successCount}, Errors: ${errorCount}`)
-      if (browserInstance) {
-        console.log('❌ Закрываем браузер после генерации PDF...');
-        await browserInstance.close();
-        await clearChromiumProcesses();
-        console.log('✅ Браузер закрыт');
-        browserInstance = null; // чтобы при следующем вызове getBrowser() запускался новый экземпляр
-    }
   } catch (error) {
       console.error('❌ Критическая ошибка:', error);
       sendLog('❌ Fatal error:', error)
       res.status(500).send('Ошибка: ' + error.message);
-  }
+  } finally {
+  await closeBrowser();
+}
 });
 
 // Обработка завершения приложения
@@ -679,7 +681,7 @@ app.post('/download-selected', express.json(), (req, res) => {
 // Функция для генерации одного PDF на лету (без сохранения на сервере)
 app.post('/generate-single-pdf', express.json(), async (req, res) => {
   console.log('📤 Получен запрос на генерацию одного PDF');
-  
+  let page = null
   try {
     const invoiceData = req.body;
     console.log(invoiceData)
@@ -727,18 +729,18 @@ app.post('/generate-single-pdf', express.json(), async (req, res) => {
     const finalTotalInEnglish = toWords(finalAmountTotalNet);
 
     // Загружаем изображения
-    const logoPath = path.join(__dirname, 'img/logo.png');
-    const qrPath = path.join(__dirname, 'img/qr.png');
-    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
-    const qrBase64 = fs.readFileSync(qrPath).toString('base64');
-    const logoDataUri = `data:image/png;base64,${logoBase64}`;
-    const qrDataUri = `data:image/png;base64,${qrBase64}`;
-
+    // const logoPath = path.join(__dirname, 'img/logo.png');
+    // const qrPath = path.join(__dirname, 'img/qr.png');
+    // const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+    // const qrBase64 = fs.readFileSync(qrPath).toString('base64');
+    // const logoDataUri = `data:image/png;base64,${logoBase64}`;
+    // const qrDataUri = `data:image/png;base64,${qrBase64}`;
+    let invoiceHtml = invoiceTemplate;
     // Читаем шаблон
-    let invoiceHtml = fs.readFileSync(
-      path.join(__dirname, 'invoice_template.html'), 
-      'utf-8'
-    );
+    // let invoiceHtml = fs.readFileSync(
+    //   path.join(__dirname, 'invoice_template.html'), 
+    //   'utf-8'
+    // );
 
     // Заменяем плейсхолдеры
     invoiceHtml = invoiceHtml
@@ -770,10 +772,10 @@ app.post('/generate-single-pdf', express.json(), async (req, res) => {
     // Создаем PDF в памяти
     console.log('🖥️ Запускаем браузер для генерации PDF...');
     const browser = await getBrowser();
-    const page = await browser.newPage();
+    page = await browser.newPage();
     
     await page.setContent(invoiceHtml, { 
-      waitUntil: 'networkidle0',
+      waitUntil: 'load',
       timeout: 30000
     });
 
@@ -812,7 +814,9 @@ app.post('/generate-single-pdf', express.json(), async (req, res) => {
         details: error.message 
       });
     }
-  }
+  } finally {
+    if (page) await page.close().catch(() => {});
+}
 });
 
 app.listen(PORT, '0.0.0.0', () => {
